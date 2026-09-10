@@ -1,10 +1,13 @@
 package com.altis.library_backend.users.models.dtos;
 
-public record RegisterResponseDTO(
+import java.time.LocalDate;
+
+public record UserResponseDTO(
     Long id,
-    String name,
+    String nameCompleted,
     String email,
-    String cpf,
     String phone,
+    String cpf,
+    LocalDate dateBirth,
     String address
 ) {}

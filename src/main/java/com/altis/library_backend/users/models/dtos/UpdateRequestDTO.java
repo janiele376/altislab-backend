@@ -11,7 +11,7 @@ public record UpdateRequestDTO (
                 regexp = "^[a-zA-ZÀ-ÿ]+(?:\\s+[a-zA-ZÀ-ÿ]+)+$",
                 message = "Enter your full name (first and last name), containing only letters."
         )
-        String name,
+        String nameCompleted,
 
         @Email(message = "the format is invalid")
         String email,
@@ -20,6 +20,9 @@ public record UpdateRequestDTO (
 
         @Pattern(regexp = "^\\(\\d{2}\\)\\s9\\d{4}-\\d{4}$", message = "The phone must follow the pattern (99) 99999-9999.")
         String phone,
+
+        @Size(min = 8, message = "The password field require 8 characters")
+        String password,
 
         @NotBlank(message = "The current password is required to confirm changes.")
         @Size(min = 8, message = "The password field require 8 characters")

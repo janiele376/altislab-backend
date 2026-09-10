@@ -41,16 +41,16 @@ public class Users {
     private String address;
 
     @Column(name="is_admin",nullable = false)
-    private Boolean isAdmin;
+    private Boolean isAdmin=false;
 
     @Column(name="is_disabled", nullable = false)
-    private Boolean isDisabled;
+    private Boolean isDisabled=false;
 
     @Column(name="password",nullable = false)
     private String password;
 
     @CreatedDate
-    @Column(name="created_at ", nullable = false, updatable = false)
+    @Column(name="created_at" , nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @LastModifiedDate
