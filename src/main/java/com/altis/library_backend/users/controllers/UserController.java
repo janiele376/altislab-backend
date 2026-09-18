@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.*;
 import java.net.URI;
 
 @RestController
@@ -16,20 +17,27 @@ import java.net.URI;
 public class UserController {
     private final UserService userService;
 
-    public UserController(UserService userService){
+    public UserController(UserService userService) {
         this.userService = userService;
     }
 
     @PostMapping
-    public ResponseEntity<UserResponseDTO> create(@RequestBody @Valid UserRequestDTO request){
+    public ResponseEntity<UserResponseDTO> create(@RequestBody @Valid UserRequestDTO request) {
         UserResponseDTO response = userService.createUser(request);
 
-        URI location = URI.create("/users" + response.id());
+        URI location = URI.create("/users/" + response.id());
         return ResponseEntity.created(location).body(response);
     }
 
+    @GetMapping
+    public ResponseEntity<List<UserResponseDTO>> getAll() {
+        List<UserResponseDTO> responses = userService.findAll();
+
+        return ResponseEntity.ok(responses);
+    }
+
     @GetMapping("/{id}")
-    public ResponseEntity<UserResponseDTO> getById(@PathVariable Long id){
+    public ResponseEntity<UserResponseDTO> getById(@PathVariable Long id) {
         UserResponseDTO response = userService.findById(id);
         return ResponseEntity.ok(response);
     }

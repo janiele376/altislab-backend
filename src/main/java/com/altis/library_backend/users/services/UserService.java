@@ -6,11 +6,18 @@ import com.altis.library_backend.users.models.dtos.UserResponseDTO;
 import com.altis.library_backend.users.models.dtos.UpdateResponseDTO;
 import com.altis.library_backend.users.models.entities.Users;
 import com.altis.library_backend.users.repositories.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Array;
+import java.util.ArrayList;
+import java.util.List;
+
 @Service
 public class UserService {
+    private static final Logger log = LoggerFactory.getLogger(UserService.class);
     private final UserRepository userRepository;
 
     public UserService(UserRepository userRepository){
@@ -20,7 +27,8 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserResponseDTO findById(Long id){
 
-        Users findUser = userRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found with ID: "+id));
+        Users findUser = userRepository.findById(id).orElseThrow(() ->
+                new IllegalArgumentException("User not found with ID: "+id));
 
         return new UserResponseDTO(
                 findUser.getId(),
@@ -31,6 +39,27 @@ public class UserService {
                 findUser.getDateBirth(),
                 findUser.getAddress()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserResponseDTO> findAll() {
+        List<Users> users = userRepository.findAll();
+
+        List<UserResponseDTO> responses = new ArrayList<>();
+
+        for (Users user : users) {
+            UserResponseDTO response = new UserResponseDTO(
+                    user.getId(),
+                    user.getNameCompleted(),
+                    user.getEmail(),
+                    user.getPhone(),
+                    user.getCpf(),
+                    user.getDateBirth(),
+                    user.getAddress()
+            );
+            responses.add(response);
+        }
+        return responses;
     }
 
     @Transactional
@@ -68,7 +97,8 @@ public class UserService {
 
     @Transactional
     public UpdateResponseDTO updateUser(Long id, UpdateRequestDTO request){
-        Users existingUser = userRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + id));
+        Users existingUser = userRepository.findById(id).orElseThrow(() ->
+                new IllegalArgumentException("User not found with ID: " + id));
 
         if (!existingUser.getPassword().equals(request.currentPassword())) {
             throw new IllegalArgumentException("Invalid current password!");
