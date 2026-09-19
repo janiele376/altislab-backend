@@ -82,6 +82,30 @@ public class BookService {
                             new IllegalArgumentException("Book not found")
                     );
 
+            if (!existingBook.getTitle().equals(request.title())) {
+                throw new IllegalArgumentException(
+                        "This ISBN is registered with a different title."
+                );
+            }
+
+            if (!existingBook.getGenre().equals(request.genre())) {
+                throw new IllegalArgumentException(
+                        "This ISBN is registered with a different genre."
+                );
+            }
+
+            if (!existingBook.getReleaseDate().equals(request.releaseDate())) {
+                throw new IllegalArgumentException(
+                        "This ISBN is registered with a different release date."
+                );
+            }
+
+            if (!existingBook.getPublisherId().getId().equals(request.publisherId())) {
+                throw new IllegalArgumentException(
+                        "This ISBN is registered with a different publisher."
+                );
+            }
+
             existingBook.setQuantity(
                     existingBook.getQuantity() + 1
             );
