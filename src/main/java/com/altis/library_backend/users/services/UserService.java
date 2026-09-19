@@ -4,14 +4,13 @@ import com.altis.library_backend.users.models.dtos.UpdateRequestDTO;
 import com.altis.library_backend.users.models.dtos.UserRequestDTO;
 import com.altis.library_backend.users.models.dtos.UserResponseDTO;
 import com.altis.library_backend.users.models.dtos.UpdateResponseDTO;
-import com.altis.library_backend.users.models.entities.Users;
+import com.altis.library_backend.users.models.entities.UserEntity;
 import com.altis.library_backend.users.repositories.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Array;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,7 +26,7 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserResponseDTO findById(Long id){
 
-        Users findUser = userRepository.findById(id).orElseThrow(() ->
+        UserEntity findUser = userRepository.findById(id).orElseThrow(() ->
                 new IllegalArgumentException("User not found with ID: "+id));
 
         return new UserResponseDTO(
@@ -43,11 +42,11 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public List<UserResponseDTO> findAll() {
-        List<Users> users = userRepository.findAll();
+        List<UserEntity> users = userRepository.findAll();
 
         List<UserResponseDTO> responses = new ArrayList<>();
 
-        for (Users user : users) {
+        for (UserEntity user : users) {
             UserResponseDTO response = new UserResponseDTO(
                     user.getId(),
                     user.getNameCompleted(),
@@ -71,7 +70,7 @@ public class UserService {
             throw new IllegalArgumentException("Email already in use");
         }
 
-        Users newUser = new Users();
+        UserEntity newUser = new UserEntity();
         newUser.setNameCompleted(request.nameCompleted());
         newUser.setEmail(request.email());
         newUser.setPhone(request.phone());
@@ -82,7 +81,7 @@ public class UserService {
 
         newUser.setIsAdmin(false);
         newUser.setIsDisabled(false);
-        Users savedUser = userRepository.save(newUser);
+        UserEntity savedUser = userRepository.save(newUser);
 
         return new UserResponseDTO(
                 savedUser.getId(),
@@ -97,7 +96,7 @@ public class UserService {
 
     @Transactional
     public UpdateResponseDTO updateUser(Long id, UpdateRequestDTO request){
-        Users existingUser = userRepository.findById(id).orElseThrow(() ->
+        UserEntity existingUser = userRepository.findById(id).orElseThrow(() ->
                 new IllegalArgumentException("User not found with ID: " + id));
 
         if (!existingUser.getPassword().equals(request.currentPassword())) {
@@ -127,7 +126,7 @@ public class UserService {
             existingUser.setPassword(request.password());
         }
 
-        Users savedUser = userRepository.save(existingUser);
+        UserEntity savedUser = userRepository.save(existingUser);
 
         return new UpdateResponseDTO(
                 savedUser.getId(),

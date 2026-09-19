@@ -1,5 +1,6 @@
-package com.altis.library_backend.publishers.models.entities;
+package com.altis.library_backend.books.models.entities;
 
+import com.altis.library_backend.publishers.models.entities.PublisherEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -14,27 +15,31 @@ import java.time.LocalDateTime;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "publishers")
+@Table(name = "books")
 @EntityListeners(AuditingEntityListener.class)
-public class Publishers {
+public class BookEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name="name", nullable = false)
-    private String name;
+    @Column(name="isbn",nullable = false, unique = true)
+    private String isbn;
 
-    @Column(name="cnpj",nullable = false, unique = true)
-    private String cnpj;
+    @Column(name="title", nullable = false)
+    private String title;
 
-    @Column(name="email",nullable = false, unique = true)
-    private String email;
+    @Column(name = "genre", nullable = false)
+    private String genre;
 
-    @Column(name="phone",nullable = false)
-    private String phone;
+    @Column(name="release_date",nullable = false)
+    private String releaseDate;
 
-    @Column(name="address",nullable = false)
-    private String address;
+    @Column(name = "quantity")
+    private Integer quantity=0;
+
+    @ManyToOne
+    @JoinColumn(name = "publisher_id")
+    private PublisherEntity publisherId;
 
     @CreatedDate
     @Column(name="created_at" , nullable = false, updatable = false)

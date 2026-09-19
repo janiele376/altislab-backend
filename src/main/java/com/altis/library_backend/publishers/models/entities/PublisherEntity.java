@@ -1,4 +1,4 @@
-package com.altis.library_backend.users.models.entities;
+package com.altis.library_backend.publishers.models.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -6,24 +6,26 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users")
 @EqualsAndHashCode(of = "id")
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Table(name = "publishers")
 @EntityListeners(AuditingEntityListener.class)
-public class Users {
+public class PublisherEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name="name", nullable = false)
-    private String nameCompleted;
+    private String name;
+
+    @Column(name="cnpj",nullable = false, unique = true)
+    private String cnpj;
 
     @Column(name="email",nullable = false, unique = true)
     private String email;
@@ -31,23 +33,8 @@ public class Users {
     @Column(name="phone",nullable = false)
     private String phone;
 
-    @Column(name="cpf",nullable = false, unique = true)
-    private String cpf;
-
-    @Column(name="date_birth",nullable = false)
-    private LocalDate dateBirth;
-
     @Column(name="address",nullable = false)
     private String address;
-
-    @Column(name="is_admin",nullable = false)
-    private Boolean isAdmin=false;
-
-    @Column(name="is_disabled", nullable = false)
-    private Boolean isDisabled=false;
-
-    @Column(name="password",nullable = false)
-    private String password;
 
     @CreatedDate
     @Column(name="created_at" , nullable = false, updatable = false)
