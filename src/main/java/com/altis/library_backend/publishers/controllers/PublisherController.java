@@ -25,7 +25,7 @@ public class PublisherController {
     public ResponseEntity<PublisherResponseDTO> create(@RequestBody @Valid PublisherRequestDTO request){
         PublisherResponseDTO response = publisherService.createPublisher(request);
 
-        URI location = URI.create("/publishers/" + response.cnpj());
+        URI location = URI.create("/publishers/" + response.id());
         return ResponseEntity.created(location).body(response);
     }
 
@@ -50,7 +50,9 @@ public class PublisherController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<PublisherResponseDTO> delete(@PathVariable Long id) {
+
         publisherService.deletePublisher(id);
         return ResponseEntity.noContent().build();
+
     }
 }

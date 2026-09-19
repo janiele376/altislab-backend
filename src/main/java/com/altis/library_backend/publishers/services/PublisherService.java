@@ -1,28 +1,38 @@
 package com.altis.library_backend.publishers.services;
 
+import com.altis.library_backend.books.repositories.BookRepository;
+import com.altis.library_backend.books.services.BookService;
 import com.altis.library_backend.publishers.models.dtos.PublisherRequestDTO;
 import com.altis.library_backend.publishers.models.dtos.PublisherResponseDTO;
 import com.altis.library_backend.publishers.models.dtos.UpdateRequestDTO;
 import com.altis.library_backend.publishers.models.dtos.UpdateResponseDTO;
-import com.altis.library_backend.publishers.models.entities.Publishers;
+import com.altis.library_backend.publishers.models.entities.PublisherEntity;
 import com.altis.library_backend.publishers.repositories.PublisherRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
 public class PublisherService {
-    private final PublisherRepository publishersRepository;
 
-    public PublisherService(PublisherRepository publishersRepository) {
+    private final PublisherRepository publishersRepository;
+    private final BookRepository bookRepository;
+
+    public PublisherService(
+            PublisherRepository publishersRepository,
+            BookRepository bookRepository
+    ) {
         this.publishersRepository = publishersRepository;
+        this.bookRepository = bookRepository;
     }
 
     @Transactional(readOnly = true)
     public PublisherResponseDTO findById(Long id){
-        Publishers findPublisher = publishersRepository.findPublisherById(id).orElseThrow(() ->
+        PublisherEntity findPublisher = publishersRepository.findById(id).orElseThrow(() ->
                 new IllegalArgumentException("User not found with ID: "+id));
     return new PublisherResponseDTO(
             findPublisher.getId(),
@@ -36,11 +46,11 @@ public class PublisherService {
 
     @Transactional(readOnly = true)
     public List<PublisherResponseDTO> findAll(){
-        List<Publishers> publishers = publishersRepository.findAll();
+        List<PublisherEntity> publishers = publishersRepository.findAll();
 
         List<PublisherResponseDTO> responses = new ArrayList<>();
 
-        for (Publishers publisher : publishers){
+        for (PublisherEntity publisher : publishers){
             PublisherResponseDTO response = new PublisherResponseDTO(
                     publisher.getId(),
                     publisher.getName(),
@@ -63,14 +73,14 @@ public class PublisherService {
             throw new IllegalArgumentException(("The email is used"));
         }
 
-        Publishers newPublisher = new Publishers();
+        PublisherEntity newPublisher = new PublisherEntity();
         newPublisher.setName(request.name());
         newPublisher.setCnpj(request.cnpj());
         newPublisher.setEmail(request.email());
         newPublisher.setPhone(request.phone());
         newPublisher.setAddress(request.address());
 
-        Publishers savedPublishers = publishersRepository.save(newPublisher);
+        PublisherEntity savedPublishers = publishersRepository.save(newPublisher);
 
         return new PublisherResponseDTO(
                 savedPublishers.getId(),
@@ -85,7 +95,7 @@ public class PublisherService {
     @Transactional
     public UpdateResponseDTO updatePublisher(Long id, UpdateRequestDTO request) {
 
-        Publishers existingPublisher = publishersRepository.findById(id)
+        PublisherEntity existingPublisher = publishersRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Publisher not found"));
 
         if (request.email() != null
@@ -112,7 +122,7 @@ public class PublisherService {
             existingPublisher.setAddress(request.address());
         }
 
-        Publishers savedPublisher = publishersRepository.save(existingPublisher);
+        PublisherEntity savedPublisher = publishersRepository.save(existingPublisher);
 
         return new UpdateResponseDTO(
                 savedPublisher.getId(),
@@ -127,6 +137,10 @@ public class PublisherService {
     public void deletePublisher(Long id){
         if(!publishersRepository.existsById(id)){
             throw new IllegalArgumentException("Publisher not found with ID: " + id);
+        }
+
+        if(this.bookRepository.existsByPublisherId_Id(id)){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "There are books registered with this publisher.");
         }
 
         publishersRepository.deleteById(id);
