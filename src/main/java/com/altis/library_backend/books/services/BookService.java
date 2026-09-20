@@ -43,6 +43,7 @@ public class BookService {
                 findBook.getGenre(),
                 findBook.getReleaseDate(),
                 findBook.getPublisherId().getId(),
+                findBook.getPublisherId().getName(),
                 findBook.getQuantity()
         );
     }
@@ -63,6 +64,7 @@ public class BookService {
                     book.getGenre(),
                     book.getReleaseDate(),
                     book.getPublisherId().getId(),
+                    book.getPublisherId().getName(),
                     book.getQuantity()
             );
 
@@ -119,6 +121,7 @@ public class BookService {
                     savedBook.getGenre(),
                     savedBook.getReleaseDate(),
                     savedBook.getPublisherId().getId(),
+                    savedBook.getPublisherId().getName(),
                     savedBook.getQuantity()
             );
         }
@@ -148,6 +151,7 @@ public class BookService {
                 savedBook.getGenre(),
                 savedBook.getReleaseDate(),
                 savedBook.getPublisherId().getId(),
+                savedBook.getPublisherId().getName(),
                 savedBook.getQuantity()
         );
     }
@@ -192,7 +196,8 @@ public class BookService {
                 savedBook.getTitle(),
                 savedBook.getGenre(),
                 savedBook.getReleaseDate(),
-                savedBook.getPublisherId().getId()
+                savedBook.getPublisherId().getId(),
+                savedBook.getPublisherId().getName()
         );
     }
 

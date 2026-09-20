@@ -7,5 +7,6 @@ public record UpdateResponseDTO(
         String title,
         String genre,
         String releaseDate,
-        Long publisherId
+        Long publisherId,
+        String publisherName
 ) {}

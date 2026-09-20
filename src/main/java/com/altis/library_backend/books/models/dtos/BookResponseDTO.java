@@ -9,5 +9,6 @@ public record BookResponseDTO(
         String genre,
         String releaseDate,
         Long publisherId,
+        String publisherName,
         Integer quantity
 ) {}

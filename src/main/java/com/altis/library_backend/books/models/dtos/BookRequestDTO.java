@@ -21,6 +21,8 @@ public record BookRequestDTO(
         @NotBlank
         String releaseDate,
 
-        Long publisherId
+        Long publisherId,
+
+        String publisherName
 
 ) {}
