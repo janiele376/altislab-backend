@@ -1,0 +1,64 @@
+package com.altis.library_backend.rentals.controllers;
+
+import com.altis.library_backend.rentals.models.dtos.RentalRequestDTO;
+import com.altis.library_backend.rentals.models.dtos.RentalResponseDTO;
+import com.altis.library_backend.rentals.services.RentalService;
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
+import java.util.List;
+
+@RestController
+@RequestMapping("/rentals")
+public class RentalController {
+
+    private final RentalService rentalService;
+
+    public RentalController(RentalService rentalService) {
+        this.rentalService = rentalService;
+    }
+
+    @PostMapping
+    public ResponseEntity<RentalResponseDTO> create(@RequestBody @Valid RentalRequestDTO request) {
+
+        RentalResponseDTO response = rentalService.createRental(request);
+
+        URI location = URI.create("/rentals/" + response.id());
+
+        return ResponseEntity.created(location).body(response);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<RentalResponseDTO>> getAll() {
+
+        List<RentalResponseDTO> responses = rentalService.findAll();
+
+        return ResponseEntity.ok(responses);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<RentalResponseDTO> getById(@PathVariable Long id) {
+
+        RentalResponseDTO response = rentalService.findById(id);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{id}/renew")
+    public ResponseEntity<RentalResponseDTO> renew(@PathVariable Long id) {
+
+        RentalResponseDTO response = rentalService.renewRental(id);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{id}/return")
+    public ResponseEntity<RentalResponseDTO> returnRental(@PathVariable Long id) {
+
+        RentalResponseDTO response = rentalService.returnRental(id);
+
+        return ResponseEntity.ok(response);
+    }
+}
