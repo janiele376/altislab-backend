@@ -1,4 +1,4 @@
-CREATE TABLE books
+CREATE TABLE rentals
 (
     id           BIGSERIAL PRIMARY KEY,
     users_id     BIGSERIAL                           NOT NULL,

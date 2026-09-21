@@ -8,8 +8,11 @@ import com.altis.library_backend.books.models.entities.BookEntity;
 import com.altis.library_backend.books.repositories.BookRepository;
 import com.altis.library_backend.publishers.models.entities.PublisherEntity;
 import com.altis.library_backend.publishers.repositories.PublisherRepository;
+import com.altis.library_backend.rentals.repositories.RentalRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,13 +22,16 @@ public class BookService {
 
     private final BookRepository bookRepository;
     private final PublisherRepository publisherRepository;
+    private final RentalRepository rentalRepository;
 
     public BookService(
             BookRepository bookRepository,
-            PublisherRepository publisherRepository
+            PublisherRepository publisherRepository,
+            RentalRepository rentalRepository
     ) {
         this.bookRepository = bookRepository;
         this.publisherRepository = publisherRepository;
+        this.rentalRepository = rentalRepository;
     }
 
     @Transactional(readOnly = true)
@@ -207,6 +213,13 @@ public class BookService {
         if (!bookRepository.existsById(id)) {
             throw new IllegalArgumentException(
                     "Book not found with ID: " + id
+            );
+        }
+
+        if (rentalRepository.existsByBooksId_Id(id)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "There are rentals registered with this book."
             );
         }
 

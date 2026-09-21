@@ -1,13 +1,19 @@
 package com.altis.library_backend.users.models.entities;
 
+import com.altis.library_backend.auth.models.dtos.RegisterDTO;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -17,7 +23,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
-public class UserEntity {
+public class UserEntity implements UserDetails{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -56,4 +62,30 @@ public class UserEntity {
     @LastModifiedDate
     @Column(name="updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    public UserEntity(RegisterDTO data, String encryptedPassword) {
+        this.nameCompleted = data.nameCompleted();
+        this.email = data.email();
+        this.phone = data.phone();
+        this.cpf = data.cpf();
+        this.dateBirth = data.dateBirth();
+        this.address = data.address();
+        this.password = encryptedPassword;
+        this.isAdmin = false;
+        this.isDisabled = false;
+    }
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        if (Boolean.TRUE.equals(isAdmin)) {
+            return List.of(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        }
+
+        return List.of(new SimpleGrantedAuthority("ROLE_USER"));
+    }
+
+    @Override
+    public String getUsername() {
+        return email;
+    }
 }

@@ -8,8 +8,10 @@ import com.altis.library_backend.rentals.models.entities.RentalEntity;
 import com.altis.library_backend.rentals.repositories.RentalRepository;
 import com.altis.library_backend.users.models.entities.UserEntity;
 import com.altis.library_backend.users.repositories.UserRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -216,10 +218,30 @@ public class RentalService {
             return "LATE";
         }
 
-        if (!today.isBefore(endDate.minusDays(3))) {
+        if (!today.isBefore(endDate.minusDays(2))) {
             return "DUE_SOON";
         }
 
         return "ACTIVE";
+    }
+
+    @Transactional
+    public void deleteRental(Long id) {
+
+        RentalEntity rental = rentalRepository.findById(id)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "Rental not found with ID: " + id
+                        )
+                );
+
+        if (rentalRepository.existsByUsersId_Id(id)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "There are rentals registered with this user."
+            );
+        }
+
+        rentalRepository.delete(rental);
     }
 }

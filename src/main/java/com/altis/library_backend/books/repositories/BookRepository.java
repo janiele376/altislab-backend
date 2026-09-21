@@ -16,12 +16,6 @@ public interface BookRepository extends JpaRepository<BookEntity, Long> {
 
     boolean existsByIsbn(String isbn);
 
-    boolean existsByTitle(String title);
-
-    boolean existsByGenre(String genre);
-
-    boolean existsByReleaseDate(String releaseDate);
-
     boolean existsByPublisherId_Id(Long publisherId);
 
 }
