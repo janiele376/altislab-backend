@@ -1,13 +1,13 @@
 package com.altis.library_backend.users.services;
 
+import com.altis.library_backend.auth.models.dtos.ForgotPasswordDTO;
 import com.altis.library_backend.users.models.dtos.UpdateRequestDTO;
+import com.altis.library_backend.users.models.dtos.UpdateResponseDTO;
 import com.altis.library_backend.users.models.dtos.UserRequestDTO;
 import com.altis.library_backend.users.models.dtos.UserResponseDTO;
-import com.altis.library_backend.users.models.dtos.UpdateResponseDTO;
 import com.altis.library_backend.users.models.entities.UserEntity;
 import com.altis.library_backend.users.repositories.UserRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,18 +16,22 @@ import java.util.List;
 
 @Service
 public class UserService {
-    private static final Logger log = LoggerFactory.getLogger(UserService.class);
-    private final UserRepository userRepository;
 
-    public UserService(UserRepository userRepository){
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    public UserService(
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder
+    ){
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional(readOnly = true)
-    public UserResponseDTO findById(Long id){
+    public UserResponseDTO findById(Long id) {
 
-        UserEntity findUser = userRepository.findById(id).orElseThrow(() ->
-                new IllegalArgumentException("User not found with ID: "+id));
+        UserEntity findUser = userRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + id));
 
         return new UserResponseDTO(
                 findUser.getId(),
@@ -42,11 +46,13 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public List<UserResponseDTO> findAll() {
+
         List<UserEntity> users = userRepository.findAll();
 
         List<UserResponseDTO> responses = new ArrayList<>();
 
         for (UserEntity user : users) {
+
             UserResponseDTO response = new UserResponseDTO(
                     user.getId(),
                     user.getNameCompleted(),
@@ -62,26 +68,116 @@ public class UserService {
     }
 
     @Transactional
-    public UserResponseDTO createUser(UserRequestDTO request){
-        if (userRepository.existsByCpf(request.cpf())){
-            throw new IllegalArgumentException("CPF already in use");
-        }
-        if (userRepository.existsByEmail(request.email())) {
-            throw new IllegalArgumentException("Email already in use");
+    public UpdateResponseDTO updateUser(Long id, UpdateRequestDTO request) {
+
+        UserEntity existingUser = userRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + id));
+
+        if (!passwordEncoder.matches(
+                request.currentPassword(),
+                existingUser.getPassword()
+        )) {
+            throw new IllegalArgumentException(
+                    "Invalid current password!"
+            );
         }
 
-        UserEntity newUser = new UserEntity();
-        newUser.setNameCompleted(request.nameCompleted());
-        newUser.setEmail(request.email());
-        newUser.setPhone(request.phone());
-        newUser.setCpf(request.cpf());
-        newUser.setDateBirth(request.dateBirth());
-        newUser.setAddress(request.address());
-        newUser.setPassword(request.password());
+        if (request.email() != null
+                && !request.email().isBlank()
+                && !existingUser.getEmail().equals(request.email())
+                && userRepository.existsByEmail(request.email())) {
 
-        newUser.setIsAdmin(false);
-        newUser.setIsDisabled(false);
-        UserEntity savedUser = userRepository.save(newUser);
+            throw new IllegalArgumentException(
+                    "Email already in use by another account"
+            );
+        }
+
+        if (request.nameCompleted() != null && !request.nameCompleted().isBlank()) {
+            existingUser.setNameCompleted(request.nameCompleted()
+            );
+        }
+
+        if (request.email() != null && !request.email().isBlank()) {
+            existingUser.setEmail(request.email()
+            );
+        }
+
+        if (request.address() != null && !request.address().isBlank()) {
+            existingUser.setAddress(request.address()
+            );
+        }
+
+        if (request.phone() != null && !request.phone().isBlank()) {
+            existingUser.setPhone(request.phone()
+            );
+        }
+
+        if (request.password() != null && !request.password().isBlank()) {
+            existingUser.setPassword(
+                    passwordEncoder.encode(
+                            request.password()
+                    )
+            );
+        }
+
+        UserEntity savedUser =
+                userRepository.save(existingUser);
+
+        return new UpdateResponseDTO(
+                savedUser.getId(),
+                savedUser.getNameCompleted(),
+                savedUser.getEmail(),
+                savedUser.getPhone(),
+                savedUser.getAddress()
+        );
+    }
+
+    @Transactional
+    public UserResponseDTO adminUpdateUser(Long id, UserRequestDTO request) {
+
+        UserEntity existingUser = userRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + id));
+
+        if (request.email() != null
+                && !request.email().isBlank()
+                && !existingUser.getEmail().equals(request.email())
+                && userRepository.existsByEmail(request.email())) {
+
+            throw new IllegalArgumentException(
+                    "Email already in use by another account"
+            );
+        }
+
+        if (request.nameCompleted() != null && !request.nameCompleted().isBlank()) {
+            existingUser.setNameCompleted(request.nameCompleted()
+            );
+        }
+
+        if (request.email() != null && !request.email().isBlank()) {
+            existingUser.setEmail(request.email()
+            );
+        }
+
+        if (request.phone() != null && !request.phone().isBlank()) {
+            existingUser.setPhone(request.phone()
+            );
+        }
+
+        if (request.address() != null && !request.address().isBlank()) {
+            existingUser.setAddress(request.address()
+            );
+        }
+
+        if (request.cpf() != null && !request.cpf().isBlank()) {
+            existingUser.setCpf(request.cpf()
+            );
+        }
+
+        if (request.dateBirth() != null) {
+            existingUser.setDateBirth(request.dateBirth()
+            );
+        }
+
+        UserEntity savedUser =
+                userRepository.save(existingUser);
 
         return new UserResponseDTO(
                 savedUser.getId(),
@@ -95,52 +191,38 @@ public class UserService {
     }
 
     @Transactional
-    public UpdateResponseDTO updateUser(Long id, UpdateRequestDTO request){
-        UserEntity existingUser = userRepository.findById(id).orElseThrow(() ->
-                new IllegalArgumentException("User not found with ID: " + id));
+    public void forgotPassword(
+            ForgotPasswordDTO request
+    ) {
 
-        if (!existingUser.getPassword().equals(request.currentPassword())) {
-            throw new IllegalArgumentException("Invalid current password!");
-        }
+        UserEntity existingUser = userRepository.findByEmail(request.email()).orElseThrow(() -> new IllegalArgumentException("Invalid email or CPF"));
 
-        if (request.email() != null && !request.email().isBlank()
-                && !existingUser.getEmail().equals(request.email())
-                && userRepository.existsByEmail(request.email())) {
-            throw new IllegalArgumentException("Email already in use by another account");
+        if (!existingUser.getCpf().equals(request.cpf())) {
+            throw new IllegalArgumentException(
+                    "Invalid email or CPF"
+            );
         }
 
-        if (request.nameCompleted() != null && !request.nameCompleted().isBlank()) {
-            existingUser.setNameCompleted(request.nameCompleted());
-        }
-        if (request.email() != null && !request.email().isBlank()) {
-            existingUser.setEmail(request.email());
-        }
-        if (request.address() != null && !request.address().isBlank()) {
-            existingUser.setAddress(request.address());
-        }
-        if (request.phone() != null && !request.phone().isBlank()) {
-            existingUser.setPhone(request.phone());
+        if (!request.newPassword().equals(request.confirmPassword())) {
+            throw new IllegalArgumentException(
+                    "Passwords do not match"
+            );
         }
 
-        if (request.password() != null && !request.password().isBlank()) {
-            existingUser.setPassword(request.password());
-        }
-
-        UserEntity savedUser = userRepository.save(existingUser);
-
-        return new UpdateResponseDTO(
-                savedUser.getId(),
-                savedUser.getNameCompleted(),
-                savedUser.getEmail(),
-                savedUser.getPhone(),
-                savedUser.getAddress()
+        existingUser.setPassword(
+                passwordEncoder.encode(
+                        request.newPassword()
+                )
         );
+
+        userRepository.save(existingUser);
     }
 
     @Transactional
-    public void deleteUser(Long id){
-        if(!userRepository.existsById(id)){
-            throw new IllegalArgumentException("User not found with ID: "+id);
+    public void deleteUser(Long id) {
+
+        if (!userRepository.existsById(id)) {
+            throw new IllegalArgumentException("User not found with ID: " + id);
         }
 
         userRepository.deleteById(id);

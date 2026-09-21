@@ -21,7 +21,8 @@ public class RentalController {
     }
 
     @PostMapping
-    public ResponseEntity<RentalResponseDTO> create(@RequestBody @Valid RentalRequestDTO request) {
+    public ResponseEntity<RentalResponseDTO> create(
+            @RequestBody @Valid RentalRequestDTO request) {
 
         RentalResponseDTO response = rentalService.createRental(request);
 
@@ -39,7 +40,8 @@ public class RentalController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<RentalResponseDTO> getById(@PathVariable Long id) {
+    public ResponseEntity<RentalResponseDTO> getById(
+            @PathVariable Long id) {
 
         RentalResponseDTO response = rentalService.findById(id);
 
@@ -47,7 +49,8 @@ public class RentalController {
     }
 
     @PutMapping("/{id}/renew")
-    public ResponseEntity<RentalResponseDTO> renew(@PathVariable Long id) {
+    public ResponseEntity<RentalResponseDTO> renew(
+            @PathVariable Long id) {
 
         RentalResponseDTO response = rentalService.renewRental(id);
 
@@ -55,10 +58,19 @@ public class RentalController {
     }
 
     @PutMapping("/{id}/return")
-    public ResponseEntity<RentalResponseDTO> returnRental(@PathVariable Long id) {
+    public ResponseEntity<RentalResponseDTO> returnRental(
+            @PathVariable Long id) {
 
         RentalResponseDTO response = rentalService.returnRental(id);
 
         return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+
+        rentalService.deleteRental(id);
+
+        return ResponseEntity.noContent().build();
     }
 }

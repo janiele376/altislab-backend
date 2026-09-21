@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "books")
+@Table(name = "rentals")
 @EntityListeners(AuditingEntityListener.class)
 public class RentalEntity {
     @Id
@@ -38,7 +38,7 @@ public class RentalEntity {
     @Column(name="start_date",nullable = false)
     private LocalDate startDate;
 
-    @Column(name="start_date",nullable = false)
+    @Column(name="end_date",nullable = false)
     private LocalDate endDate;
 
     @Column(name = "status", nullable = false)
