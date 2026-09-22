@@ -448,6 +448,6 @@ Os DTOs são utilizados para controlar os dados recebidos e retornados pela API,
 - Dashboard administrativa;
 - Controle de migrations com Flyway.
 
-## 👩‍💻 Desenvolvimento
+## Desenvolvimento
 
 Projeto desenvolvido como API backend para gerenciamento de biblioteca utilizando Java, Spring Boot e PostgreSQL.
