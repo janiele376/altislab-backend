@@ -7,6 +7,7 @@ public record UserDashboardResponseDTO(
         Long onTimeRentals,
         Long nearDueRentals,
         Long overdueRentals,
-        String mostRentedBook
+        String mostRentedBook,
+        List<DashboardBookDTO> availableBooks
 ) {
 }

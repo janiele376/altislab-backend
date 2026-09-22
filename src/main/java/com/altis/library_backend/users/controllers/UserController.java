@@ -1,6 +1,5 @@
 package com.altis.library_backend.users.controllers;
 
-import com.altis.library_backend.auth.models.dtos.ForgotPasswordDTO;
 import com.altis.library_backend.users.models.dtos.*;
 import com.altis.library_backend.users.models.entities.UserEntity;
 import com.altis.library_backend.users.services.UserService;

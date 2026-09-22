@@ -1,9 +1,9 @@
 package com.altis.library_backend.auth.controllers;
 
-import com.altis.library_backend.auth.models.dtos.AuthenticationDTO;
-import com.altis.library_backend.auth.models.dtos.ForgotPasswordDTO;
-import com.altis.library_backend.auth.models.dtos.LoginResponseDTO;
-import com.altis.library_backend.auth.models.dtos.RegisterDTO;
+import com.altis.library_backend.auth.models.dtos.AuthenticationRequestDTO;
+import com.altis.library_backend.auth.models.dtos.ForgotPasswordRequestDTO;
+import com.altis.library_backend.auth.models.dtos.AuthenticationResponseDTO;
+import com.altis.library_backend.auth.models.dtos.RegisterRequestDTO;
 import com.altis.library_backend.auth.services.TokenService;
 import com.altis.library_backend.users.models.entities.UserEntity;
 import com.altis.library_backend.users.repositories.UserRepository;
@@ -38,7 +38,7 @@ public class AuthenticationController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponseDTO> login(@RequestBody @Valid AuthenticationDTO data) {
+    public ResponseEntity<AuthenticationResponseDTO> login(@RequestBody @Valid AuthenticationRequestDTO data) {
 
         var usernamePassword = new UsernamePasswordAuthenticationToken(data.email(), data.password());
 
@@ -46,11 +46,11 @@ public class AuthenticationController {
 
         var token = tokenService.generateToken((UserEntity) auth.getPrincipal());
 
-        return ResponseEntity.ok(new LoginResponseDTO(token));
+        return ResponseEntity.ok(new AuthenticationResponseDTO(token));
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody @Valid RegisterDTO data) {
+    public ResponseEntity<String> register(@RequestBody @Valid RegisterRequestDTO data) {
 
         if (userRepository.findByEmail(data.email()).isPresent()) {
             return ResponseEntity
@@ -68,9 +68,7 @@ public class AuthenticationController {
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<Void> forgotPassword(
-            @RequestBody @Valid ForgotPasswordDTO request
-    ) {
+    public ResponseEntity<Void> forgotPassword(@RequestBody @Valid ForgotPasswordRequestDTO request) {
         userService.forgotPassword(request);
 
         return ResponseEntity.noContent().build();

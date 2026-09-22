@@ -91,25 +91,29 @@ public class BookService {
                     );
 
             if (!existingBook.getTitle().equals(request.title())) {
-                throw new IllegalArgumentException(
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
                         "This ISBN is registered with a different title."
                 );
             }
 
             if (!existingBook.getGenre().equals(request.genre())) {
-                throw new IllegalArgumentException(
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
                         "This ISBN is registered with a different genre."
                 );
             }
 
             if (!existingBook.getReleaseDate().equals(request.releaseDate())) {
-                throw new IllegalArgumentException(
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
                         "This ISBN is registered with a different release date."
                 );
             }
 
             if (!existingBook.getPublisherId().getId().equals(request.publisherId())) {
-                throw new IllegalArgumentException(
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
                         "This ISBN is registered with a different publisher."
                 );
             }

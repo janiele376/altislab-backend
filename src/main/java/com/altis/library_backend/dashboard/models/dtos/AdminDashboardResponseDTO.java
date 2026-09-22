@@ -10,6 +10,7 @@ public record AdminDashboardResponseDTO(
         Long totalRentals,
         Long totalBooks,
         Long totalPublishers,
-        String mostRentedBook
+        String mostRentedBook,
+        List<DashboardBookDTO> availableBooks
 ) {
 }

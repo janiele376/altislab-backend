@@ -3,6 +3,7 @@ package com.altis.library_backend.dashboard.services;
 import com.altis.library_backend.books.models.entities.BookEntity;
 import com.altis.library_backend.books.repositories.BookRepository;
 import com.altis.library_backend.dashboard.models.dtos.AdminDashboardResponseDTO;
+import com.altis.library_backend.dashboard.models.dtos.DashboardBookDTO;
 import com.altis.library_backend.dashboard.models.dtos.DashboardRentalDTO;
 import com.altis.library_backend.dashboard.models.dtos.UserDashboardResponseDTO;
 import com.altis.library_backend.publishers.repositories.PublisherRepository;
@@ -40,36 +41,13 @@ public class DashboardService {
 
         List<RentalEntity> lastRentals = rentalRepository.findTop5ByUsersId_IdOrderByCreatedAtDesc(userId);
 
-        long onTimeRentals = 0;
-        long nearDueRentals = 0;
-        long overdueRentals = 0;
-
-        for (RentalEntity rental : userRentals) {
-
-            if (Boolean.TRUE.equals(rental.getWasReturned())) {continue;}
-
-            String status = calculateStatus(rental);
-
-            if (status.equals("ON_TIME")) {onTimeRentals++;}
-
-            if (status.equals("NEAR_DUE")) {nearDueRentals++;}
-
-            if (status.equals("OVERDUE")) {overdueRentals++;}
-        }
-
-        List<DashboardRentalDTO> lastRentalsDTO =
-                lastRentals.stream()
-                        .map(this::toDashboardRentalDTO)
-                        .toList();
-
-        String mostRentedBook = findMostRentedBook(userRentals);
-
         return new UserDashboardResponseDTO(
-                lastRentalsDTO,
-                onTimeRentals,
-                nearDueRentals,
-                overdueRentals,
-                mostRentedBook
+                toDashboardRentalDTOList(lastRentals),
+                countRentalsByStatus(userRentals, "ON_TIME"),
+                countRentalsByStatus(userRentals, "NEAR_DUE"),
+                countRentalsByStatus(userRentals, "OVERDUE"),
+                findMostRentedBook(userRentals),
+                getAvailableBooks()
         );
     }
 
@@ -80,39 +58,61 @@ public class DashboardService {
 
         List<RentalEntity> lastRentals = rentalRepository.findTop5ByOrderByCreatedAtDesc();
 
-        long onTimeRentals = 0;
-        long nearDueRentals = 0;
-        long overdueRentals = 0;
-
-        for (RentalEntity rental : rentals) {
-
-            if (Boolean.TRUE.equals(rental.getWasReturned())) {continue;}
-
-            String status = calculateStatus(rental);
-
-            if (status.equals("ON_TIME")) {onTimeRentals++;}
-
-            if (status.equals("NEAR_DUE")) {nearDueRentals++;}
-
-            if (status.equals("OVERDUE")) {overdueRentals++;}
-        }
-
-        List<DashboardRentalDTO> lastRentalsDTO =
-                lastRentals.stream()
-                        .map(this::toDashboardRentalDTO)
-                        .toList();
-
-        String mostRentedBook = findMostRentedBook(rentals);
-
         return new AdminDashboardResponseDTO(
-                onTimeRentals,
-                nearDueRentals,
-                overdueRentals,
-                lastRentalsDTO,
+                countRentalsByStatus(rentals, "ON_TIME"),
+                countRentalsByStatus(rentals, "NEAR_DUE"),
+                countRentalsByStatus(rentals, "OVERDUE"),
+                toDashboardRentalDTOList(lastRentals),
                 rentalRepository.count(),
                 bookRepository.count(),
                 publisherRepository.count(),
-                mostRentedBook
+                findMostRentedBook(rentals),
+                getAvailableBooks()
+        );
+    }
+
+    private long countRentalsByStatus(List<RentalEntity> rentals, String expectedStatus) {
+        return rentals.stream()
+                .filter(rental ->
+                        calculateStatus(rental).equals(expectedStatus)
+                )
+                .count();
+    }
+
+    private List<DashboardRentalDTO> toDashboardRentalDTOList(List<RentalEntity> rentals) {
+        return rentals.stream()
+                .map(this::toDashboardRentalDTO)
+                .toList();
+    }
+
+    private List<DashboardBookDTO> getAvailableBooks() {
+
+        return bookRepository.findAll()
+                .stream()
+                .filter(book ->
+                        book.getQuantity() != null
+                                && book.getQuantity() > 0
+                )
+                .map(this::toDashboardBookDTO)
+                .toList();
+    }
+
+    private DashboardBookDTO toDashboardBookDTO(BookEntity book) {
+        return new DashboardBookDTO(
+                book.getId(),
+                book.getTitle(),
+                book.getQuantity()
+        );
+    }
+
+    private DashboardRentalDTO toDashboardRentalDTO(RentalEntity rental) {
+        return new DashboardRentalDTO(
+                rental.getId(),
+                rental.getBooksId().getId(),
+                rental.getBooksId().getTitle(),
+                rental.getStartDate(),
+                rental.getEndDate(),
+                calculateStatus(rental)
         );
     }
 
@@ -136,18 +136,6 @@ public class DashboardService {
         return "ON_TIME";
     }
 
-    private DashboardRentalDTO toDashboardRentalDTO(RentalEntity rental) {
-
-        return new DashboardRentalDTO(
-                rental.getId(),
-                rental.getBooksId().getId(),
-                rental.getBooksId().getTitle(),
-                rental.getStartDate(),
-                rental.getEndDate(),
-                calculateStatus(rental)
-        );
-    }
-
     private String findMostRentedBook(List<RentalEntity> rentals) {
 
         if (rentals.isEmpty()) {
@@ -169,11 +157,9 @@ public class DashboardService {
         BookEntity mostRentedBook = null;
         long highestCount = 0;
 
-        for (Map.Entry<BookEntity, Long> entry
-                : bookCount.entrySet()) {
+        for (Map.Entry<BookEntity, Long> entry : bookCount.entrySet()) {
 
             if (entry.getValue() > highestCount) {
-
                 highestCount = entry.getValue();
                 mostRentedBook = entry.getKey();
             }

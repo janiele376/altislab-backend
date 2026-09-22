@@ -1,6 +1,6 @@
 package com.altis.library_backend.users.services;
 
-import com.altis.library_backend.auth.models.dtos.ForgotPasswordDTO;
+import com.altis.library_backend.auth.models.dtos.ForgotPasswordRequestDTO;
 import com.altis.library_backend.users.models.dtos.UpdateRequestDTO;
 import com.altis.library_backend.users.models.dtos.UpdateResponseDTO;
 import com.altis.library_backend.users.models.dtos.UserRequestDTO;
@@ -190,7 +190,7 @@ public class UserService {
     }
 
     @Transactional
-    public void forgotPassword(ForgotPasswordDTO request) {
+    public void forgotPassword(ForgotPasswordRequestDTO request) {
 
         UserEntity existingUser = userRepository.findByEmail(request.email()).orElseThrow(() -> new IllegalArgumentException("Invalid email or CPF"));
 
