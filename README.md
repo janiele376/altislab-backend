@@ -244,7 +244,7 @@ RETURNED
 
 Aluguel já devolvido.
 
-## 📊 Dashboard do locatário
+## Dashboard do locatário
 
 ```http
 GET /dashboard/me
