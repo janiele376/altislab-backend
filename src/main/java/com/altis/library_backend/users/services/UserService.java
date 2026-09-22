@@ -176,8 +176,7 @@ public class UserService {
             );
         }
 
-        UserEntity savedUser =
-                userRepository.save(existingUser);
+        UserEntity savedUser = userRepository.save(existingUser);
 
         return new UserResponseDTO(
                 savedUser.getId(),
@@ -191,9 +190,7 @@ public class UserService {
     }
 
     @Transactional
-    public void forgotPassword(
-            ForgotPasswordDTO request
-    ) {
+    public void forgotPassword(ForgotPasswordDTO request) {
 
         UserEntity existingUser = userRepository.findByEmail(request.email()).orElseThrow(() -> new IllegalArgumentException("Invalid email or CPF"));
 
@@ -209,11 +206,7 @@ public class UserService {
             );
         }
 
-        existingUser.setPassword(
-                passwordEncoder.encode(
-                        request.newPassword()
-                )
-        );
+        existingUser.setPassword(passwordEncoder.encode(request.newPassword()));
 
         userRepository.save(existingUser);
     }

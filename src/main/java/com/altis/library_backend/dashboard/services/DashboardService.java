@@ -36,11 +36,9 @@ public class DashboardService {
     @Transactional(readOnly = true)
     public UserDashboardResponseDTO getUserDashboard(Long userId) {
 
-        List<RentalEntity> userRentals =
-                rentalRepository.findByUsersId_Id(userId);
+        List<RentalEntity> userRentals = rentalRepository.findByUsersId_Id(userId);
 
-        List<RentalEntity> lastRentals =
-                rentalRepository.findTop5ByUsersId_IdOrderByCreatedAtDesc(userId);
+        List<RentalEntity> lastRentals = rentalRepository.findTop5ByUsersId_IdOrderByCreatedAtDesc(userId);
 
         long onTimeRentals = 0;
         long nearDueRentals = 0;
@@ -48,23 +46,15 @@ public class DashboardService {
 
         for (RentalEntity rental : userRentals) {
 
-            if (Boolean.TRUE.equals(rental.getWasReturned())) {
-                continue;
-            }
+            if (Boolean.TRUE.equals(rental.getWasReturned())) {continue;}
 
             String status = calculateStatus(rental);
 
-            if (status.equals("ON_TIME")) {
-                onTimeRentals++;
-            }
+            if (status.equals("ON_TIME")) {onTimeRentals++;}
 
-            if (status.equals("NEAR_DUE")) {
-                nearDueRentals++;
-            }
+            if (status.equals("NEAR_DUE")) {nearDueRentals++;}
 
-            if (status.equals("OVERDUE")) {
-                overdueRentals++;
-            }
+            if (status.equals("OVERDUE")) {overdueRentals++;}
         }
 
         List<DashboardRentalDTO> lastRentalsDTO =
@@ -72,21 +62,10 @@ public class DashboardService {
                         .map(this::toDashboardRentalDTO)
                         .toList();
 
-        int availableBooks = bookRepository.findAll()
-                .stream()
-                .mapToInt(book ->
-                        book.getQuantity() != null
-                                ? book.getQuantity()
-                                : 0
-                )
-                .sum();
-
-        String mostRentedBook =
-                findMostRentedBook(userRentals);
+        String mostRentedBook = findMostRentedBook(userRentals);
 
         return new UserDashboardResponseDTO(
                 lastRentalsDTO,
-                availableBooks,
                 onTimeRentals,
                 nearDueRentals,
                 overdueRentals,
@@ -97,11 +76,9 @@ public class DashboardService {
     @Transactional(readOnly = true)
     public AdminDashboardResponseDTO getAdminDashboard() {
 
-        List<RentalEntity> rentals =
-                rentalRepository.findAll();
+        List<RentalEntity> rentals = rentalRepository.findAll();
 
-        List<RentalEntity> lastRentals =
-                rentalRepository.findTop5ByOrderByCreatedAtDesc();
+        List<RentalEntity> lastRentals = rentalRepository.findTop5ByOrderByCreatedAtDesc();
 
         long onTimeRentals = 0;
         long nearDueRentals = 0;
@@ -109,23 +86,15 @@ public class DashboardService {
 
         for (RentalEntity rental : rentals) {
 
-            if (Boolean.TRUE.equals(rental.getWasReturned())) {
-                continue;
-            }
+            if (Boolean.TRUE.equals(rental.getWasReturned())) {continue;}
 
             String status = calculateStatus(rental);
 
-            if (status.equals("ON_TIME")) {
-                onTimeRentals++;
-            }
+            if (status.equals("ON_TIME")) {onTimeRentals++;}
 
-            if (status.equals("NEAR_DUE")) {
-                nearDueRentals++;
-            }
+            if (status.equals("NEAR_DUE")) {nearDueRentals++;}
 
-            if (status.equals("OVERDUE")) {
-                overdueRentals++;
-            }
+            if (status.equals("OVERDUE")) {overdueRentals++;}
         }
 
         List<DashboardRentalDTO> lastRentalsDTO =
@@ -133,8 +102,7 @@ public class DashboardService {
                         .map(this::toDashboardRentalDTO)
                         .toList();
 
-        String mostRentedBook =
-                findMostRentedBook(rentals);
+        String mostRentedBook = findMostRentedBook(rentals);
 
         return new AdminDashboardResponseDTO(
                 onTimeRentals,
@@ -168,9 +136,7 @@ public class DashboardService {
         return "ON_TIME";
     }
 
-    private DashboardRentalDTO toDashboardRentalDTO(
-            RentalEntity rental
-    ) {
+    private DashboardRentalDTO toDashboardRentalDTO(RentalEntity rental) {
 
         return new DashboardRentalDTO(
                 rental.getId(),
@@ -182,16 +148,13 @@ public class DashboardService {
         );
     }
 
-    private String findMostRentedBook(
-            List<RentalEntity> rentals
-    ) {
+    private String findMostRentedBook(List<RentalEntity> rentals) {
 
         if (rentals.isEmpty()) {
             return null;
         }
 
-        Map<BookEntity, Long> bookCount =
-                new HashMap<>();
+        Map<BookEntity, Long> bookCount = new HashMap<>();
 
         for (RentalEntity rental : rentals) {
 
