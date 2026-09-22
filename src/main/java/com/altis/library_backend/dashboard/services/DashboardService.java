@@ -3,6 +3,7 @@ package com.altis.library_backend.dashboard.services;
 import com.altis.library_backend.books.models.entities.BookEntity;
 import com.altis.library_backend.books.repositories.BookRepository;
 import com.altis.library_backend.dashboard.models.dtos.AdminDashboardResponseDTO;
+import com.altis.library_backend.dashboard.models.dtos.DashboardBookDTO;
 import com.altis.library_backend.dashboard.models.dtos.DashboardRentalDTO;
 import com.altis.library_backend.dashboard.models.dtos.UserDashboardResponseDTO;
 import com.altis.library_backend.publishers.repositories.PublisherRepository;
@@ -72,25 +73,25 @@ public class DashboardService {
                         .map(this::toDashboardRentalDTO)
                         .toList();
 
-        int availableBooks = bookRepository.findAll()
-                .stream()
-                .mapToInt(book ->
-                        book.getQuantity() != null
-                                ? book.getQuantity()
-                                : 0
-                )
-                .sum();
+        List<DashboardBookDTO> availableBooks =
+                bookRepository.findAll()
+                        .stream()
+                        .map(book -> new DashboardBookDTO(
+                                book.getTitle(),
+                                book.getQuantity()
+                        ))
+                        .toList();
 
         String mostRentedBook =
                 findMostRentedBook(userRentals);
 
         return new UserDashboardResponseDTO(
                 lastRentalsDTO,
-                availableBooks,
                 onTimeRentals,
                 nearDueRentals,
                 overdueRentals,
-                mostRentedBook
+                mostRentedBook,
+                availableBooks
         );
     }
 
