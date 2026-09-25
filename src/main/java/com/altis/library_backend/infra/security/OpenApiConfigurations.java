@@ -1,4 +1,4 @@
-package com.altis.library_backend.infra.openapi;
+package com.altis.library_backend.infra.security;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;

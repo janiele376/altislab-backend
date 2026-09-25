@@ -6,8 +6,12 @@ import com.altis.library_backend.rentals.models.dtos.RentalRequestDTO;
 import com.altis.library_backend.rentals.models.dtos.RentalResponseDTO;
 import com.altis.library_backend.rentals.models.entities.RentalEntity;
 import com.altis.library_backend.rentals.repositories.RentalRepository;
+import com.altis.library_backend.rentals.specifications.RentalSpecification;
 import com.altis.library_backend.users.models.entities.UserEntity;
 import com.altis.library_backend.users.repositories.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,28 +61,29 @@ public class RentalService {
     }
 
     @Transactional(readOnly = true)
-    public List<RentalResponseDTO> findAll() {
+    public Page<RentalResponseDTO> findAll(
+            String userName,
+            String bookTitle,
+            Pageable pageable
+    ) {
 
-        List<RentalEntity> rentals = rentalRepository.findAll();
-        List<RentalResponseDTO> responses = new ArrayList<>();
+        Specification<RentalEntity> spec =
+                RentalSpecification.hasUserName(userName)
+                        .and(RentalSpecification.hasBookTitle(bookTitle));
 
-        for (RentalEntity rental : rentals) {
+        Page<RentalEntity> rentals =
+                rentalRepository.findAll(spec, pageable);
 
-            RentalResponseDTO response = new RentalResponseDTO(
-                    rental.getId(),
-                    rental.getUsersId().getId(),
-                    rental.getUsersId().getNameCompleted(),
-                    rental.getBooksId().getId(),
-                    rental.getBooksId().getTitle(),
-                    rental.getStartDate(),
-                    rental.getEndDate(),
-                    getRentalStatus(rental)
-            );
-
-            responses.add(response);
-        }
-
-        return responses;
+        return rentals.map(rental -> new RentalResponseDTO(
+                rental.getId(),
+                rental.getUsersId().getId(),
+                rental.getUsersId().getNameCompleted(),
+                rental.getBooksId().getId(),
+                rental.getBooksId().getTitle(),
+                rental.getStartDate(),
+                rental.getEndDate(),
+                getRentalStatus(rental)
+        ));
     }
 
     @Transactional

@@ -1,5 +1,7 @@
 package com.altis.library_backend.dashboard.models.dtos;
 
+import org.springframework.data.domain.Page;
+
 import java.util.List;
 
 public record AdminDashboardResponseDTO(
@@ -11,6 +13,6 @@ public record AdminDashboardResponseDTO(
         Long totalBooks,
         Long totalPublishers,
         String mostRentedBook,
-        List<DashboardBookDTO> availableBooks
+        Page<DashboardBookDTO> availableBooks
 ) {
 }

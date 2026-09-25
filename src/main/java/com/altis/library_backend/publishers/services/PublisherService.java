@@ -8,6 +8,8 @@ import com.altis.library_backend.publishers.models.dtos.UpdateRequestDTO;
 import com.altis.library_backend.publishers.models.dtos.UpdateResponseDTO;
 import com.altis.library_backend.publishers.models.entities.PublisherEntity;
 import com.altis.library_backend.publishers.repositories.PublisherRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,22 +47,17 @@ public class PublisherService {
     }
 
     @Transactional(readOnly = true)
-    public List<PublisherResponseDTO> findAll(){
-        List<PublisherEntity> publishers = publishersRepository.findAll();
+    public Page<PublisherResponseDTO> findAll(Pageable pageable){
+        Page<PublisherEntity> publishers = publishersRepository.findAll(pageable);
 
-        List<PublisherResponseDTO> responses = new ArrayList<>();
-
-        for (PublisherEntity publisher : publishers){
-            PublisherResponseDTO response = new PublisherResponseDTO(
-                    publisher.getId(),
-                    publisher.getName(),
-                    publisher.getCnpj(),
-                    publisher.getEmail(),
-                    publisher.getPhone(),
-                    publisher.getAddress()
-            );
-            responses.add(response);
-        }
+        Page<PublisherResponseDTO> responses = publishers.map(publisher -> new PublisherResponseDTO(
+                publisher.getId(),
+                publisher.getName(),
+                publisher.getCnpj(),
+                publisher.getEmail(),
+                publisher.getPhone(),
+                publisher.getAddress()
+        ));
         return responses;
     }
 

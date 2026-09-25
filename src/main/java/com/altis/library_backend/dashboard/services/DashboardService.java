@@ -9,6 +9,8 @@ import com.altis.library_backend.dashboard.models.dtos.UserDashboardResponseDTO;
 import com.altis.library_backend.publishers.repositories.PublisherRepository;
 import com.altis.library_backend.rentals.models.entities.RentalEntity;
 import com.altis.library_backend.rentals.repositories.RentalRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,7 +37,7 @@ public class DashboardService {
     }
 
     @Transactional(readOnly = true)
-    public UserDashboardResponseDTO getUserDashboard(Long userId) {
+    public UserDashboardResponseDTO getUserDashboard(Long userId, Pageable pageable) {
 
         List<RentalEntity> userRentals = rentalRepository.findByUsersId_Id(userId);
 
@@ -47,12 +49,12 @@ public class DashboardService {
                 countRentalsByStatus(userRentals, "NEAR_DUE"),
                 countRentalsByStatus(userRentals, "OVERDUE"),
                 findMostRentedBook(userRentals),
-                getAvailableBooks()
+                getAvailableBooks(pageable)
         );
     }
 
     @Transactional(readOnly = true)
-    public AdminDashboardResponseDTO getAdminDashboard() {
+    public AdminDashboardResponseDTO getAdminDashboard(Pageable pageable) {
 
         List<RentalEntity> rentals = rentalRepository.findAll();
 
@@ -67,7 +69,7 @@ public class DashboardService {
                 bookRepository.count(),
                 publisherRepository.count(),
                 findMostRentedBook(rentals),
-                getAvailableBooks()
+                getAvailableBooks(pageable)
         );
     }
 
@@ -85,16 +87,10 @@ public class DashboardService {
                 .toList();
     }
 
-    private List<DashboardBookDTO> getAvailableBooks() {
+    private Page<DashboardBookDTO> getAvailableBooks(Pageable pageable) {
 
-        return bookRepository.findAll()
-                .stream()
-                .filter(book ->
-                        book.getQuantity() != null
-                                && book.getQuantity() > 0
-                )
-                .map(this::toDashboardBookDTO)
-                .toList();
+        return bookRepository.findByQuantityGreaterThan(0, pageable)
+                .map(this::toDashboardBookDTO);
     }
 
     private DashboardBookDTO toDashboardBookDTO(BookEntity book) {

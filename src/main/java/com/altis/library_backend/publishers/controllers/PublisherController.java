@@ -6,6 +6,9 @@ import com.altis.library_backend.publishers.services.PublisherService;
 import com.altis.library_backend.publishers.models.dtos.UpdateRequestDTO;
 import com.altis.library_backend.publishers.models.dtos.UpdateResponseDTO;
 import jakarta.validation.Valid;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,8 +33,8 @@ public class PublisherController {
     }
 
     @GetMapping
-    public ResponseEntity<List<PublisherResponseDTO>> getAll(){
-        List<PublisherResponseDTO> responses = publisherService.findAll();
+    public ResponseEntity<Page<PublisherResponseDTO>> getAll(@ParameterObject Pageable pageable){
+        Page<PublisherResponseDTO> responses = publisherService.findAll(pageable);
 
         return ResponseEntity.ok(responses);
     }
