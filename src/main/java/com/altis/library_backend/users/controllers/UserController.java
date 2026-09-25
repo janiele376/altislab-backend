@@ -1,10 +1,13 @@
 package com.altis.library_backend.users.controllers;
 
-import com.altis.library_backend.auth.models.dtos.ForgotPasswordDTO;
+import com.altis.library_backend.books.models.dtos.BookResponseDTO;
 import com.altis.library_backend.users.models.dtos.*;
 import com.altis.library_backend.users.models.entities.UserEntity;
 import com.altis.library_backend.users.services.UserService;
 import jakarta.validation.Valid;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -22,9 +25,13 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<List<UserResponseDTO>> getAll() {
-        List<UserResponseDTO> responses = userService.findAll();
-
+    public ResponseEntity<Page<UserResponseDTO>> getAll(
+            @RequestParam(required = false) String nameCompleted,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String cpf,
+            @ParameterObject Pageable pageable
+    ) {
+        Page<UserResponseDTO> responses = userService.findAll(nameCompleted,email,cpf, pageable);
         return ResponseEntity.ok(responses);
     }
 

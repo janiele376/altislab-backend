@@ -1,12 +1,16 @@
 package com.altis.library_backend.users.services;
 
-import com.altis.library_backend.auth.models.dtos.ForgotPasswordDTO;
+import com.altis.library_backend.auth.models.dtos.ForgotPasswordRequestDTO;
 import com.altis.library_backend.users.models.dtos.UpdateRequestDTO;
 import com.altis.library_backend.users.models.dtos.UpdateResponseDTO;
 import com.altis.library_backend.users.models.dtos.UserRequestDTO;
 import com.altis.library_backend.users.models.dtos.UserResponseDTO;
 import com.altis.library_backend.users.models.entities.UserEntity;
 import com.altis.library_backend.users.repositories.UserRepository;
+import com.altis.library_backend.users.specifications.UserSpecification;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,38 +37,40 @@ public class UserService {
 
         UserEntity findUser = userRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + id));
 
-        return new UserResponseDTO(
-                findUser.getId(),
-                findUser.getNameCompleted(),
-                findUser.getEmail(),
-                findUser.getPhone(),
-                findUser.getCpf(),
-                findUser.getDateBirth(),
-                findUser.getAddress()
-        );
+            if (findUser.getEmail().equals("admin@admin.com")) {
+                throw new IllegalArgumentException("User not found with ID: " + id);
+            }
+
+            return new UserResponseDTO(
+                    findUser.getId(),
+                    findUser.getNameCompleted(),
+                    findUser.getEmail(),
+                    findUser.getPhone(),
+                    findUser.getCpf(),
+                    findUser.getDateBirth(),
+                    findUser.getAddress()
+            );
     }
 
     @Transactional(readOnly = true)
-    public List<UserResponseDTO> findAll() {
+    public Page<UserResponseDTO> findAll(String nameCompleted,String email, String cpf, Pageable pageable) {
 
-        List<UserEntity> users = userRepository.findAll();
+        Specification<UserEntity> spec = UserSpecification.isNotAdmin()
+                .and(UserSpecification.hasName(nameCompleted))
+                .and(UserSpecification.hasEmail(email))
+                .and(UserSpecification.hasCpf(cpf));
 
-        List<UserResponseDTO> responses = new ArrayList<>();
+        Page<UserEntity> users = userRepository.findAll(spec, pageable);
 
-        for (UserEntity user : users) {
-
-            UserResponseDTO response = new UserResponseDTO(
-                    user.getId(),
-                    user.getNameCompleted(),
-                    user.getEmail(),
-                    user.getPhone(),
-                    user.getCpf(),
-                    user.getDateBirth(),
-                    user.getAddress()
-            );
-            responses.add(response);
-        }
-        return responses;
+        return users.map(user -> new UserResponseDTO(
+                user.getId(),
+                user.getNameCompleted(),
+                user.getEmail(),
+                user.getPhone(),
+                user.getCpf(),
+                user.getDateBirth(),
+                user.getAddress()
+        ));
     }
 
     @Transactional
@@ -176,8 +182,7 @@ public class UserService {
             );
         }
 
-        UserEntity savedUser =
-                userRepository.save(existingUser);
+        UserEntity savedUser = userRepository.save(existingUser);
 
         return new UserResponseDTO(
                 savedUser.getId(),
@@ -191,9 +196,7 @@ public class UserService {
     }
 
     @Transactional
-    public void forgotPassword(
-            ForgotPasswordDTO request
-    ) {
+    public void forgotPassword(ForgotPasswordRequestDTO request) {
 
         UserEntity existingUser = userRepository.findByEmail(request.email()).orElseThrow(() -> new IllegalArgumentException("Invalid email or CPF"));
 
@@ -209,11 +212,7 @@ public class UserService {
             );
         }
 
-        existingUser.setPassword(
-                passwordEncoder.encode(
-                        request.newPassword()
-                )
-        );
+        existingUser.setPassword(passwordEncoder.encode(request.newPassword()));
 
         userRepository.save(existingUser);
     }

@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-public record ForgotPasswordDTO(
+public record ForgotPasswordRequestDTO(
 
         @NotBlank(message = "The email is required")
         @Email(message = "The email format is invalid")

@@ -1,6 +1,6 @@
 package com.altis.library_backend.users.models.entities;
 
-import com.altis.library_backend.auth.models.dtos.RegisterDTO;
+import com.altis.library_backend.auth.models.dtos.RegisterRequestDTO;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -63,7 +63,7 @@ public class UserEntity implements UserDetails{
     @Column(name="updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public UserEntity(RegisterDTO data, String encryptedPassword) {
+    public UserEntity(RegisterRequestDTO data, String encryptedPassword) {
         this.nameCompleted = data.nameCompleted();
         this.email = data.email();
         this.phone = data.phone();

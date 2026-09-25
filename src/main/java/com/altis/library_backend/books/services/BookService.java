@@ -6,13 +6,18 @@ import com.altis.library_backend.books.models.dtos.UpdateRequestDTO;
 import com.altis.library_backend.books.models.dtos.UpdateResponseDTO;
 import com.altis.library_backend.books.models.entities.BookEntity;
 import com.altis.library_backend.books.repositories.BookRepository;
+import com.altis.library_backend.books.specifications.BookSpecification;
 import com.altis.library_backend.publishers.models.entities.PublisherEntity;
 import com.altis.library_backend.publishers.repositories.PublisherRepository;
 import com.altis.library_backend.rentals.repositories.RentalRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import com.altis.library_backend.books.specifications.BookSpecification;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +33,7 @@ public class BookService {
             BookRepository bookRepository,
             PublisherRepository publisherRepository,
             RentalRepository rentalRepository
-    ) {
+            ) {
         this.bookRepository = bookRepository;
         this.publisherRepository = publisherRepository;
         this.rentalRepository = rentalRepository;
@@ -55,28 +60,23 @@ public class BookService {
     }
 
     @Transactional(readOnly = true)
-    public List<BookResponseDTO> findAll() {
+    public Page<BookResponseDTO> findAll(String title,String genre, String isbn,Pageable pageable) {
+        Specification<BookEntity> spec = BookSpecification.hasTitle(title)
+                .and(BookSpecification.hasGenre(genre))
+                .and(BookSpecification.hasIsbn(isbn));
 
-        List<BookEntity> books = bookRepository.findAll();
+        Page<BookEntity> books = bookRepository.findAll(spec, pageable);
 
-        List<BookResponseDTO> responses = new ArrayList<>();
-
-        for (BookEntity book : books) {
-
-            BookResponseDTO response = new BookResponseDTO(
-                    book.getId(),
-                    book.getIsbn(),
-                    book.getTitle(),
-                    book.getGenre(),
-                    book.getReleaseDate(),
-                    book.getPublisherId().getId(),
-                    book.getPublisherId().getName(),
-                    book.getQuantity()
-            );
-
-            responses.add(response);
-        }
-
+        Page<BookResponseDTO> responses = books.map(book -> new BookResponseDTO(
+                book.getId(),
+                book.getIsbn(),
+                book.getTitle(),
+                book.getGenre(),
+                book.getReleaseDate(),
+                book.getPublisherId().getId(),
+                book.getPublisherId().getName(),
+                book.getQuantity()
+        ));
         return responses;
     }
 
@@ -91,25 +91,29 @@ public class BookService {
                     );
 
             if (!existingBook.getTitle().equals(request.title())) {
-                throw new IllegalArgumentException(
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
                         "This ISBN is registered with a different title."
                 );
             }
 
             if (!existingBook.getGenre().equals(request.genre())) {
-                throw new IllegalArgumentException(
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
                         "This ISBN is registered with a different genre."
                 );
             }
 
             if (!existingBook.getReleaseDate().equals(request.releaseDate())) {
-                throw new IllegalArgumentException(
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
                         "This ISBN is registered with a different release date."
                 );
             }
 
             if (!existingBook.getPublisherId().getId().equals(request.publisherId())) {
-                throw new IllegalArgumentException(
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
                         "This ISBN is registered with a different publisher."
                 );
             }

@@ -4,6 +4,9 @@ import com.altis.library_backend.rentals.models.dtos.RentalRequestDTO;
 import com.altis.library_backend.rentals.models.dtos.RentalResponseDTO;
 import com.altis.library_backend.rentals.services.RentalService;
 import jakarta.validation.Valid;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,9 +35,14 @@ public class RentalController {
     }
 
     @GetMapping
-    public ResponseEntity<List<RentalResponseDTO>> getAll() {
+    public ResponseEntity<Page<RentalResponseDTO>> getAll(
+            @RequestParam(required = false) String userName,
+            @RequestParam(required = false) String bookTitle,
+            @ParameterObject Pageable pageable
+    ) {
 
-        List<RentalResponseDTO> responses = rentalService.findAll();
+        Page<RentalResponseDTO> responses =
+                rentalService.findAll(userName, bookTitle, pageable);
 
         return ResponseEntity.ok(responses);
     }

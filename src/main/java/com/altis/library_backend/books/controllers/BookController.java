@@ -7,6 +7,9 @@ import com.altis.library_backend.books.services.BookService;
 import com.altis.library_backend.books.models.dtos.UpdateRequestDTO;
 import com.altis.library_backend.books.models.dtos.UpdateResponseDTO;
 import jakarta.validation.Valid;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,8 +34,13 @@ public class BookController {
     }
 
     @GetMapping
-    public ResponseEntity<List<BookResponseDTO>> getAll(){
-        List<BookResponseDTO> responses = bookService.findAll();
+    public ResponseEntity<Page<BookResponseDTO>> getAll(
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String genre,
+            @RequestParam(required = false) String isbn,
+            @ParameterObject Pageable pageable
+    ) {
+        Page<BookResponseDTO> responses = bookService.findAll(title,genre,isbn, pageable);
 
         return ResponseEntity.ok(responses);
     }
