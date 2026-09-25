@@ -2,7 +2,7 @@
 
 API REST para gerenciamento de uma biblioteca, desenvolvida com **Java e Spring Boot**.
 
-O sistema possui autenticação utilizando **JWT**, controle de acesso entre administradores e locatários, gerenciamento de usuários, livros, editoras e aluguéis, além de dashboards com informações sobre os empréstimos e o acervo da biblioteca.
+O sistema possui autenticação utilizando **JWT**, controle de acesso entre administradores e locatários, gerenciamento de usuários, livros, editoras e aluguéis, dashboards, paginação e filtros dinâmicos para consulta dos dados.
 
 ## Tecnologias utilizadas
 
@@ -17,6 +17,7 @@ O sistema possui autenticação utilizando **JWT**, controle de acesso entre adm
 - Flyway
 - Maven
 - Lombok
+- Springdoc OpenAPI / Swagger
 
 ## Estrutura do projeto
 
@@ -34,7 +35,8 @@ src/main/java/com/altis/library_backend/
 │   ├── controllers/
 │   ├── models/
 │   ├── repositories/
-│   └── services/
+│   ├── services/
+│   └── specifications/
 │
 ├── dashboard/
 │   ├── controllers/
@@ -44,26 +46,29 @@ src/main/java/com/altis/library_backend/
 ├── publishers/
 │   ├── controllers/
 │   ├── models/
-│   │   ├──dtos/
+│   │   ├── dtos/
 │   │   └── entities/
 │   ├── repositories/
-│   └── services/
+│   ├── services/
+│   └── specifications/
 │
 ├── rentals/
 │   ├── controllers/
 │   ├── models/
-│   │   ├──dtos/
+│   │   ├── dtos/
 │   │   └── entities/
 │   ├── repositories/
-│   └── services/
+│   ├── services/
+│   └── specifications/
 │
 ├── users/
 │   ├── controllers/
 │   ├── models/
-│   │   ├──dtos/
+│   │   ├── dtos/
 │   │   └── entities/
 │   ├── repositories/
-│   └── services/
+│   ├── services/
+│   └── specifications/
 │
 └── infra/
     └── security/
@@ -87,7 +92,7 @@ O locatário é o tipo padrão de usuário criado pelo cadastro público.
 
 Pode:
 
-- Visualizar livros;
+- Visualizar informações permitidas do acervo;
 - Visualizar editoras;
 - Consultar seus próprios dados;
 - Atualizar informações permitidas do próprio perfil;
@@ -124,6 +129,8 @@ POST /auth/login
 ```
 
 Após a autenticação, a API gera um JWT contendo o e-mail do usuário como `subject`.
+
+O token também possui informações adicionais através de **claims**, como a identificação do nível administrativo do usuário.
 
 O token é posteriormente validado pelo filtro de segurança em cada requisição protegida.
 
@@ -171,6 +178,12 @@ DELETE /users/{id}
 
 Algumas operações de gerenciamento são exclusivas para administradores.
 
+As consultas de usuários podem utilizar **paginação e filtros dinâmicos**, implementados com `Pageable` e `JpaSpecificationExecutor`.
+
+Contas administrativas podem ser excluídas das consultas destinadas ao gerenciamento comum de usuários.
+
+Também é possível utilizar informações como o estado da conta (`isDisabled`) como critério de filtragem.
+
 ## Livros
 
 A API permite o gerenciamento do acervo da biblioteca.
@@ -186,13 +199,24 @@ Entre as informações de um livro estão:
 
 As operações de criação, alteração e exclusão são restritas ao administrador.
 
-Usuários autenticados podem consultar o acervo.
+As consultas utilizam **paginação** e permitem a aplicação de **filtros dinâmicos**, evitando a necessidade de criar um método específico no repositório para cada combinação de pesquisa.
+
+Entre os critérios que podem ser utilizados estão informações como:
+
+- Título;
+- ISBN;
+- Gênero;
+- Editora.
+
+Os filtros podem ser combinados em uma mesma consulta.
 
 ## Editoras
 
 O sistema também permite o gerenciamento das editoras responsáveis pelos livros.
 
 As operações administrativas são restritas a usuários com `ROLE_ADMIN`.
+
+As consultas podem utilizar paginação e filtros dinâmicos através das Specifications implementadas para a funcionalidade.
 
 ## Aluguéis
 
@@ -208,41 +232,130 @@ Livro
 
 Cada aluguel possui informações como:
 
+- Usuário responsável;
+- Livro alugado;
 - Data inicial;
 - Data de devolução;
-- Status;
-- Indicação de devolução;
-- Indicação de renovação.
+- Status.
 
-O sistema utiliza as datas do aluguel para identificar sua situação.
+Ao realizar um novo aluguel, a quantidade disponível do livro é reduzida.
+
+Quando o livro é devolvido, sua quantidade disponível é incrementada novamente.
+
+O prazo inicial de um aluguel é de **14 dias**.
+
+A renovação adiciona mais **14 dias** à data prevista para devolução.
 
 ### Status dos aluguéis
 
-Os status utilizados na dashboard são:
+A situação do aluguel é calculada utilizando a data prevista para devolução e seu estado atual.
+
+Os estados apresentados pela API incluem:
 
 ```text
-ON_TIME
+ACTIVE
 ```
 
-Aluguel dentro do prazo.
+Aluguel ativo e dentro do prazo.
 
 ```text
-NEAR_DUE
+DUE_SOON
 ```
 
-Aluguel que vence no dia atual ou nos próximos dois dias.
+Aluguel próximo da data prevista para devolução.
 
 ```text
-OVERDUE
+LATE
 ```
 
-Aluguel cuja data de devolução já passou e que ainda não foi devolvido.
+Aluguel cuja data prevista para devolução já passou e que ainda não foi devolvido.
 
 ```text
 RETURNED
 ```
 
 Aluguel já devolvido.
+
+### Aluguéis atrasados
+
+Um aluguel atrasado **não bloqueia automaticamente o acesso do usuário à API**.
+
+A situação de atraso é identificada pelo sistema e pode ser apresentada nas consultas e dashboards para informar que existem pendências relacionadas aos empréstimos.
+
+Dessa forma, a aplicação mantém a informação sobre o atraso sem desativar automaticamente a conta ou impedir o login do usuário.
+
+### Pesquisa de aluguéis
+
+As consultas de aluguéis utilizam **JPA Specifications** e podem ser combinadas com paginação.
+
+É possível pesquisar os aluguéis utilizando informações relacionadas às entidades associadas, como:
+
+- Nome do usuário;
+- Título do livro.
+
+Por exemplo, uma pesquisa pelo nome do usuário acessa o relacionamento entre `Rental` e `User`, enquanto uma pesquisa pelo título acessa o relacionamento entre `Rental` e `Book`.
+
+## Paginação
+
+As consultas que podem retornar uma quantidade maior de registros utilizam o `Pageable` do Spring Data.
+
+A paginação permite controlar:
+
+```text
+page → página desejada
+size → quantidade máxima de elementos por página
+sort → ordenação dos resultados
+```
+
+Exemplo:
+
+```http
+GET /books?page=0&size=10&sort=title,asc
+```
+
+A resposta utiliza `Page`, mantendo informações como:
+
+- Conteúdo da página;
+- Número da página atual;
+- Quantidade de elementos;
+- Total de elementos;
+- Total de páginas.
+
+A paginação também é utilizada em conjunto com as Specifications, permitindo filtrar os dados antes de separá-los em páginas.
+
+## Filtros dinâmicos com JPA Specifications
+
+O projeto utiliza **JPA Specifications** para construir consultas dinâmicas.
+
+Os repositórios que precisam desse recurso utilizam:
+
+```java
+JpaSpecificationExecutor<Entity>
+```
+
+As Specifications permitem criar condições independentes e combiná-las conforme os parâmetros recebidos pela API.
+
+Exemplo conceitual:
+
+```text
+Filtro por título
+        +
+Filtro por gênero
+        +
+Filtro por editora
+        ↓
+Consulta final
+```
+
+Caso determinado parâmetro não seja informado, seu filtro pode ser ignorado.
+
+Essa abordagem evita a criação de vários métodos de repositório para cada possível combinação de filtros.
+
+As Specifications são utilizadas em conjunto com `Pageable`, permitindo executar consultas filtradas e paginadas:
+
+```java
+repository.findAll(specification, pageable);
+```
 
 ## Dashboard do locatário
 
@@ -256,31 +369,14 @@ Ela apresenta:
 
 - Últimos aluguéis;
 - Quantidade de aluguéis em dia;
-- Quantidade próxima do vencimento;
+- Quantidade de aluguéis próximos do vencimento;
 - Quantidade de aluguéis atrasados;
 - Livro mais alugado pelo usuário;
-- Lista de livros e suas quantidades disponíveis.
+- Livros disponíveis no acervo.
 
-Exemplo de parte da resposta:
+A listagem de livros disponíveis utiliza paginação para evitar o retorno de todo o acervo em uma única requisição.
 
-```json
-{
-  "onTimeRentals": 2,
-  "nearDueRentals": 1,
-  "overdueRentals": 0,
-  "mostRentedBook": "1984",
-  "availableBooks": [
-    {
-      "title": "1984",
-      "quantity": 4
-    },
-    {
-      "title": "Dom Casmurro",
-      "quantity": 7
-    }
-  ]
-}
-```
+As estatísticas da dashboard continuam sendo calculadas considerando os dados necessários para cada indicador, sem limitar os cálculos somente à página atual.
 
 ## Dashboard administrativa
 
@@ -299,13 +395,37 @@ Apresenta informações globais da biblioteca, como:
 - Total de aluguéis;
 - Total de livros cadastrados;
 - Total de editoras cadastradas;
-- Livro mais alugado.
+- Livro mais alugado;
+- Livros disponíveis no acervo.
+
+A listagem de livros disponíveis também utiliza paginação.
+
+## Swagger / OpenAPI
+
+A API possui documentação interativa utilizando **Swagger/OpenAPI** através do Springdoc.
+
+O Swagger permite:
+
+- Visualizar os endpoints disponíveis;
+- Consultar os parâmetros das requisições;
+- Testar endpoints;
+- Informar o JWT para acessar rotas protegidas;
+- Testar parâmetros de paginação;
+- Testar os filtros disponibilizados pelas Specifications.
+
+O `Pageable` é exposto na documentação através de `@ParameterObject`, permitindo visualizar parâmetros como:
+
+```text
+page
+size
+sort
+```
 
 ## Segurança
 
 As rotas são protegidas utilizando Spring Security.
 
-Exemplos das regras utilizadas:
+Exemplos de rotas da aplicação:
 
 ```text
 /auth/login             → público
@@ -314,12 +434,9 @@ Exemplos das regras utilizadas:
 
 /dashboard/me           → usuário autenticado
 /dashboard/admin        → somente ADMIN
-
-GET /books/**           → somente ADMIN
-POST /books/**          → somente ADMIN
-PUT /books/**           → somente ADMIN
-DELETE /books/**        → somente ADMIN
 ```
+
+As demais permissões são configuradas conforme o tipo de operação e o nível de acesso necessário.
 
 A aplicação utiliza uma política **stateless**, portanto o servidor não mantém uma sessão de autenticação do usuário.
 
@@ -405,15 +522,24 @@ Ou execute a classe principal da aplicação diretamente pela IDE.
 
 ## Testando a API
 
-A API pode ser testada utilizando ferramentas como Postman ou Insomnia.
+A API pode ser testada utilizando **Swagger**, Postman ou Insomnia.
 
 Para acessar uma rota protegida:
 
 1. Realize o login;
 2. Copie o JWT retornado;
-3. Selecione autenticação do tipo Bearer Token;
-4. Informe o JWT;
-5. Realize a requisição.
+3. Informe o token como Bearer Token;
+4. Realize a requisição.
+
+Para endpoints paginados, também podem ser informados parâmetros como:
+
+```text
+page=0
+size=10
+sort=title,asc
+```
+
+Quando disponíveis, os filtros das Specifications também podem ser combinados com esses parâmetros.
 
 ## Arquitetura
 
@@ -431,9 +557,12 @@ Database
 
 Os DTOs são utilizados para controlar os dados recebidos e retornados pela API, evitando a exposição direta das entidades.
 
+As Specifications adicionam uma camada responsável pela construção dos critérios de pesquisa utilizados nas consultas dinâmicas.
+
 ## Principais funcionalidades
 
 - Autenticação com JWT;
+- Claims personalizados no JWT;
 - Senhas protegidas com BCrypt;
 - Controle de acesso entre administrador e locatário;
 - Cadastro de usuários;
@@ -443,9 +572,13 @@ Os DTOs são utilizados para controlar os dados recebidos e retornados pela API,
 - CRUD de editoras;
 - Gerenciamento de aluguéis;
 - Controle de devolução e renovação;
-- Status de vencimento dos aluguéis;
+- Identificação de aluguéis próximos do vencimento e atrasados;
 - Dashboard do locatário;
 - Dashboard administrativa;
+- Paginação com Spring Data `Pageable`;
+- Filtros dinâmicos com JPA Specifications;
+- Consultas combinando Specification e Pageable;
+- Documentação e testes através do Swagger/OpenAPI;
 - Controle de migrations com Flyway.
 
 ## Desenvolvimento
