@@ -50,6 +50,58 @@ public class DashboardService {
                 countRentalsByStatus(userRentals, "OVERDUE"),
                 findMostRentedBook(userRentals),
                 getAvailableBooks(pageable)
+        List<RentalEntity> lastRentals =
+                rentalRepository.findTop5ByUsersId_IdOrderByCreatedAtDesc(userId);
+
+        long onTimeRentals = 0;
+        long nearDueRentals = 0;
+        long overdueRentals = 0;
+
+        for (RentalEntity rental : userRentals) {
+
+            if (Boolean.TRUE.equals(rental.getWasReturned())) {
+                continue;
+            }
+
+            String status = calculateStatus(rental);
+
+            if (status.equals("ON_TIME")) {
+                onTimeRentals++;
+            }
+
+            if (status.equals("NEAR_DUE")) {
+                nearDueRentals++;
+            }
+
+            if (status.equals("OVERDUE")) {
+                overdueRentals++;
+            }
+        }
+
+        List<DashboardRentalDTO> lastRentalsDTO =
+                lastRentals.stream()
+                        .map(this::toDashboardRentalDTO)
+                        .toList();
+
+        List<DashboardBookDTO> availableBooks =
+                bookRepository.findAll()
+                        .stream()
+                        .map(book -> new DashboardBookDTO(
+                                book.getTitle(),
+                                book.getQuantity()
+                        ))
+                        .toList();
+
+        String mostRentedBook =
+                findMostRentedBook(userRentals);
+
+        return new UserDashboardResponseDTO(
+                lastRentalsDTO,
+                onTimeRentals,
+                nearDueRentals,
+                overdueRentals,
+                mostRentedBook,
+                availableBooks
         );
     }
 
