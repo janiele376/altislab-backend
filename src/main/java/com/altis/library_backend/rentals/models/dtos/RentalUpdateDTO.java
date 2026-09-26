@@ -4,9 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-public record RentalRequestDTO(
-        @NotNull
+public record RentalUpdateDTO(
         Long usersId,
-        @NotNull
         Long booksId
 ) {}
