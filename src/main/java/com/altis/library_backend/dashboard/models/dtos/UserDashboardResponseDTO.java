@@ -11,5 +11,6 @@ public record UserDashboardResponseDTO(
         Long overdueRentals,
         String mostRentedBook,
         Page<DashboardBookDTO> availableBooks
+        List<DashboardBookDTO> availableBooks
 ) {
 }
