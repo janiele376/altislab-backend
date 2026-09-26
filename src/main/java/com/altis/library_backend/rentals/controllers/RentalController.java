@@ -2,6 +2,7 @@ package com.altis.library_backend.rentals.controllers;
 
 import com.altis.library_backend.rentals.models.dtos.RentalRequestDTO;
 import com.altis.library_backend.rentals.models.dtos.RentalResponseDTO;
+import com.altis.library_backend.rentals.models.dtos.RentalUpdateDTO;
 import com.altis.library_backend.rentals.services.RentalService;
 import jakarta.validation.Valid;
 import org.springdoc.core.annotations.ParameterObject;
@@ -32,6 +33,18 @@ public class RentalController {
         URI location = URI.create("/rentals/" + response.id());
 
         return ResponseEntity.created(location).body(response);
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<RentalResponseDTO> update(
+            @PathVariable Long id,
+            @RequestBody RentalUpdateDTO request
+    ) {
+
+        RentalResponseDTO response =
+                rentalService.updateRental(id, request);
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping

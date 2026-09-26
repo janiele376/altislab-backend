@@ -4,6 +4,7 @@ import com.altis.library_backend.books.models.entities.BookEntity;
 import com.altis.library_backend.books.repositories.BookRepository;
 import com.altis.library_backend.rentals.models.dtos.RentalRequestDTO;
 import com.altis.library_backend.rentals.models.dtos.RentalResponseDTO;
+import com.altis.library_backend.rentals.models.dtos.RentalUpdateDTO;
 import com.altis.library_backend.rentals.models.entities.RentalEntity;
 import com.altis.library_backend.rentals.repositories.RentalRepository;
 import com.altis.library_backend.rentals.specifications.RentalSpecification;
@@ -18,8 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 public class RentalService {
@@ -43,7 +42,8 @@ public class RentalService {
 
         RentalEntity findRental = rentalRepository.findById(id)
                 .orElseThrow(() ->
-                        new IllegalArgumentException(
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
                                 "Rental not found with ID: " + id
                         )
                 );
@@ -51,9 +51,7 @@ public class RentalService {
         return new RentalResponseDTO(
                 findRental.getId(),
                 findRental.getUsersId().getId(),
-                findRental.getUsersId().getNameCompleted(),
                 findRental.getBooksId().getId(),
-                findRental.getBooksId().getTitle(),
                 findRental.getStartDate(),
                 findRental.getEndDate(),
                 getRentalStatus(findRental)
@@ -77,9 +75,7 @@ public class RentalService {
         return rentals.map(rental -> new RentalResponseDTO(
                 rental.getId(),
                 rental.getUsersId().getId(),
-                rental.getUsersId().getNameCompleted(),
                 rental.getBooksId().getId(),
-                rental.getBooksId().getTitle(),
                 rental.getStartDate(),
                 rental.getEndDate(),
                 getRentalStatus(rental)
@@ -92,7 +88,8 @@ public class RentalService {
         UserEntity user = userRepository
                 .findById(request.usersId())
                 .orElseThrow(() ->
-                        new IllegalArgumentException(
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
                                 "User not found with ID: " + request.usersId()
                         )
                 );
@@ -100,14 +97,23 @@ public class RentalService {
         BookEntity book = bookRepository
                 .findById(request.booksId())
                 .orElseThrow(() ->
-                        new IllegalArgumentException(
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
                                 "Book not found with ID: " + request.booksId()
                         )
                 );
 
         if (book.getQuantity() <= 0) {
-            throw new IllegalArgumentException(
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
                     "Book is not available for rental."
+            );
+        }
+
+        if (user.getIsAdmin() == true) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Admin users cannot rent books."
             );
         }
 
@@ -130,9 +136,97 @@ public class RentalService {
         return new RentalResponseDTO(
                 savedRental.getId(),
                 savedRental.getUsersId().getId(),
-                savedRental.getUsersId().getNameCompleted(),
                 savedRental.getBooksId().getId(),
-                savedRental.getBooksId().getTitle(),
+                savedRental.getStartDate(),
+                savedRental.getEndDate(),
+                getRentalStatus(savedRental)
+        );
+    }
+
+    @Transactional
+    public RentalResponseDTO updateRental(Long id, RentalUpdateDTO request) {
+
+        RentalEntity rental = rentalRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Rental not found with ID: " + id
+                        )
+                );
+
+        UserEntity user = userRepository
+                .findById(request.usersId())
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "User not found with ID: " + request.usersId()
+                        )
+                );
+
+        if (request.usersId() == null && request.booksId() == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Please provide the user ID or book ID you want to edit."
+            );
+        }
+
+        if (user.getIsAdmin() == true) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Admin users cannot rent books."
+            );
+        }
+
+        Long currentUserId = rental.getUsersId().getId();
+        Long currentBookId = rental.getBooksId().getId();
+
+        boolean sameUser = request.usersId() == null || request.usersId().equals(currentUserId);
+
+        boolean sameBook = request.booksId() == null || request.booksId().equals(currentBookId);
+
+        if (sameUser && sameBook) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Data is the same as the current rental. Please choose what you want to edit."
+            );
+        }
+
+        if (request.usersId() != null) { rental.setUsersId(user); }
+
+        if (request.booksId() != null) {
+
+            BookEntity newBook = bookRepository.findById(request.booksId())
+                    .orElseThrow(() ->
+                            new ResponseStatusException(
+                                    HttpStatus.NOT_FOUND,
+                                    "Book not found with ID: " + request.booksId()
+                            )
+                    );
+
+            if (newBook.getQuantity() <= 0) {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "Book is not available for rental."
+                );
+            }
+
+            BookEntity oldBook = rental.getBooksId();
+
+            oldBook.setQuantity(oldBook.getQuantity() + 1);
+            newBook.setQuantity(newBook.getQuantity() - 1);
+
+            bookRepository.save(oldBook);
+            bookRepository.save(newBook);
+
+            rental.setBooksId(newBook);
+        }
+
+        RentalEntity savedRental = rentalRepository.save(rental);
+
+        return new RentalResponseDTO(
+                savedRental.getId(),
+                savedRental.getUsersId().getId(),
+                savedRental.getBooksId().getId(),
                 savedRental.getStartDate(),
                 savedRental.getEndDate(),
                 getRentalStatus(savedRental)
@@ -145,7 +239,8 @@ public class RentalService {
         RentalEntity existingRental = rentalRepository
                 .findById(id)
                 .orElseThrow(() ->
-                        new IllegalArgumentException(
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
                                 "Rental not found with ID: " + id
                         )
                 );
@@ -159,9 +254,7 @@ public class RentalService {
         return new RentalResponseDTO(
                 savedRental.getId(),
                 savedRental.getUsersId().getId(),
-                savedRental.getUsersId().getNameCompleted(),
                 savedRental.getBooksId().getId(),
-                savedRental.getBooksId().getTitle(),
                 savedRental.getStartDate(),
                 savedRental.getEndDate(),
                 getRentalStatus(savedRental)
@@ -174,13 +267,15 @@ public class RentalService {
         RentalEntity existingRental = rentalRepository
                 .findById(id)
                 .orElseThrow(() ->
-                        new IllegalArgumentException(
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
                                 "Rental not found with ID: " + id
                         )
                 );
 
         if (existingRental.getStatus().equals("RETURNED")) {
-            throw new IllegalArgumentException(
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
                     "Rental has already been returned."
             );
         }
@@ -201,9 +296,7 @@ public class RentalService {
         return new RentalResponseDTO(
                 savedRental.getId(),
                 savedRental.getUsersId().getId(),
-                savedRental.getUsersId().getNameCompleted(),
                 savedRental.getBooksId().getId(),
-                savedRental.getBooksId().getTitle(),
                 savedRental.getStartDate(),
                 savedRental.getEndDate(),
                 getRentalStatus(savedRental)
@@ -235,15 +328,16 @@ public class RentalService {
 
         RentalEntity rental = rentalRepository.findById(id)
                 .orElseThrow(() ->
-                        new IllegalArgumentException(
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
                                 "Rental not found with ID: " + id
                         )
                 );
 
-        if (rentalRepository.existsByUsersId_Id(id)) {
+        if (rental.getUsersId() != null || rental.getBooksId() != null) {
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "There are rentals registered with this user."
+                    HttpStatus.CONFLICT,
+                    "This rental cannot be deleted because it is connected to a user or book."
             );
         }
 

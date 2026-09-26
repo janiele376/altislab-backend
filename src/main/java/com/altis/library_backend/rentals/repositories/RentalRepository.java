@@ -13,13 +13,11 @@ import java.util.List;
 @Repository
 public interface RentalRepository extends JpaRepository<RentalEntity, Long>, JpaSpecificationExecutor<RentalEntity> {
 
-    boolean existsByUsersId_Id(Long usersId);
-
     boolean existsByBooksId_Id(Long booksId);
 
-    List<RentalEntity> findByUsersId_Id(Long userId);
+    List<RentalEntity> findByUsersId_Id(Long usersId);
 
     List<RentalEntity> findTop5ByOrderByCreatedAtDesc();
 
-    List<RentalEntity> findTop5ByUsersId_IdOrderByCreatedAtDesc(Long userId);
+    List<RentalEntity> findTop5ByUsersId_IdOrderByCreatedAtDesc(Long usersId);
 }
