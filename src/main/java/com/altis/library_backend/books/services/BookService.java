@@ -12,15 +12,11 @@ import com.altis.library_backend.publishers.repositories.PublisherRepository;
 import com.altis.library_backend.rentals.repositories.RentalRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import com.altis.library_backend.books.specifications.BookSpecification;
-import org.springframework.data.jpa.domain.Specification;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 public class BookService {
@@ -33,7 +29,7 @@ public class BookService {
             BookRepository bookRepository,
             PublisherRepository publisherRepository,
             RentalRepository rentalRepository
-            ) {
+    ) {
         this.bookRepository = bookRepository;
         this.publisherRepository = publisherRepository;
         this.rentalRepository = rentalRepository;
@@ -44,7 +40,10 @@ public class BookService {
 
         BookEntity findBook = bookRepository.findById(id)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("Book not found with ID: " + id)
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Book not found with ID: " + id
+                        )
                 );
 
         return new BookResponseDTO(
@@ -60,23 +59,33 @@ public class BookService {
     }
 
     @Transactional(readOnly = true)
-    public Page<BookResponseDTO> findAll(String title,String genre, String isbn,Pageable pageable) {
-        Specification<BookEntity> spec = BookSpecification.hasTitle(title)
-                .and(BookSpecification.hasGenre(genre))
-                .and(BookSpecification.hasIsbn(isbn));
+    public Page<BookResponseDTO> findAll(
+            String title,
+            String genre,
+            String isbn,
+            Pageable pageable
+    ) {
 
-        Page<BookEntity> books = bookRepository.findAll(spec, pageable);
+        Specification<BookEntity> spec =
+                BookSpecification.hasTitle(title)
+                        .and(BookSpecification.hasGenre(genre))
+                        .and(BookSpecification.hasIsbn(isbn));
 
-        Page<BookResponseDTO> responses = books.map(book -> new BookResponseDTO(
-                book.getId(),
-                book.getIsbn(),
-                book.getTitle(),
-                book.getGenre(),
-                book.getReleaseDate(),
-                book.getPublisherId().getId(),
-                book.getPublisherId().getName(),
-                book.getQuantity()
-        ));
+        Page<BookEntity> books =
+                bookRepository.findAll(spec, pageable);
+
+        Page<BookResponseDTO> responses =
+                books.map(book -> new BookResponseDTO(
+                        book.getId(),
+                        book.getIsbn(),
+                        book.getTitle(),
+                        book.getGenre(),
+                        book.getReleaseDate(),
+                        book.getPublisherId().getId(),
+                        book.getPublisherId().getName(),
+                        book.getQuantity()
+                ));
+
         return responses;
     }
 
@@ -85,10 +94,14 @@ public class BookService {
 
         if (bookRepository.existsByIsbn(request.isbn())) {
 
-            BookEntity existingBook = bookRepository.findByIsbn(request.isbn())
-                    .orElseThrow(() ->
-                            new IllegalArgumentException("Book not found")
-                    );
+            BookEntity existingBook =
+                    bookRepository.findByIsbn(request.isbn())
+                            .orElseThrow(() ->
+                                    new ResponseStatusException(
+                                            HttpStatus.NOT_FOUND,
+                                            "Book not found."
+                                    )
+                            );
 
             if (!existingBook.getTitle().equals(request.title())) {
                 throw new ResponseStatusException(
@@ -111,7 +124,9 @@ public class BookService {
                 );
             }
 
-            if (!existingBook.getPublisherId().getId().equals(request.publisherId())) {
+            if (!existingBook.getPublisherId().getId()
+                    .equals(request.publisherId())) {
+
                 throw new ResponseStatusException(
                         HttpStatus.CONFLICT,
                         "This ISBN is registered with a different publisher."
@@ -122,7 +137,8 @@ public class BookService {
                     existingBook.getQuantity() + 1
             );
 
-            BookEntity savedBook = bookRepository.save(existingBook);
+            BookEntity savedBook =
+                    bookRepository.save(existingBook);
 
             return new BookResponseDTO(
                     savedBook.getId(),
@@ -136,13 +152,15 @@ public class BookService {
             );
         }
 
-        PublisherEntity publisher = publisherRepository
-                .findById(request.publisherId())
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "Publisher not found with ID: " + request.publisherId()
-                        )
-                );
+        PublisherEntity publisher =
+                publisherRepository.findById(request.publisherId())
+                        .orElseThrow(() ->
+                                new ResponseStatusException(
+                                        HttpStatus.NOT_FOUND,
+                                        "Publisher not found with ID: "
+                                                + request.publisherId()
+                                )
+                        );
 
         BookEntity newBook = new BookEntity();
 
@@ -152,7 +170,8 @@ public class BookService {
         newBook.setReleaseDate(request.releaseDate());
         newBook.setPublisherId(publisher);
 
-        BookEntity savedBook = bookRepository.save(newBook);
+        BookEntity savedBook =
+                bookRepository.save(newBook);
 
         return new BookResponseDTO(
                 savedBook.getId(),
@@ -167,39 +186,61 @@ public class BookService {
     }
 
     @Transactional
-    public UpdateResponseDTO updateBook(Long id, UpdateRequestDTO request) {
+    public UpdateResponseDTO updateBook(
+            Long id,
+            UpdateRequestDTO request
+    ) {
 
-        BookEntity existingBook = bookRepository.findById(id)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("Book not found with ID: " + id)
-                );
+        BookEntity existingBook =
+                bookRepository.findById(id)
+                        .orElseThrow(() ->
+                                new ResponseStatusException(
+                                        HttpStatus.NOT_FOUND,
+                                        "Book not found with ID: " + id
+                                )
+                        );
 
-        if (request.title() != null && !request.title().isBlank()) {
-            existingBook.setTitle(request.title());
+        if (request.title() != null
+                && !request.title().isBlank()) {
+
+            existingBook.setTitle(
+                    request.title()
+            );
         }
 
-        if (request.genre() != null && !request.genre().isBlank()) {
-            existingBook.setGenre(request.genre());
+        if (request.genre() != null
+                && !request.genre().isBlank()) {
+
+            existingBook.setGenre(
+                    request.genre()
+            );
         }
 
         if (request.releaseDate() != null) {
-            existingBook.setReleaseDate(request.releaseDate());
+
+            existingBook.setReleaseDate(
+                    request.releaseDate()
+            );
         }
 
         if (request.publisherId() != null) {
 
-            PublisherEntity publisher = publisherRepository
-                    .findById(request.publisherId())
-                    .orElseThrow(() ->
-                            new IllegalArgumentException(
-                                    "Publisher not found with ID: " + request.publisherId()
-                            )
-                    );
+            PublisherEntity publisher =
+                    publisherRepository
+                            .findById(request.publisherId())
+                            .orElseThrow(() ->
+                                    new ResponseStatusException(
+                                            HttpStatus.NOT_FOUND,
+                                            "Publisher not found with ID: "
+                                                    + request.publisherId()
+                                    )
+                            );
 
             existingBook.setPublisherId(publisher);
         }
 
-        BookEntity savedBook = bookRepository.save(existingBook);
+        BookEntity savedBook =
+                bookRepository.save(existingBook);
 
         return new UpdateResponseDTO(
                 savedBook.getId(),
@@ -215,14 +256,15 @@ public class BookService {
     public void deleteBook(Long id) {
 
         if (!bookRepository.existsById(id)) {
-            throw new IllegalArgumentException(
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
                     "Book not found with ID: " + id
             );
         }
 
         if (rentalRepository.existsByBooksId_Id(id)) {
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
+                    HttpStatus.CONFLICT,
                     "There are rentals registered with this book."
             );
         }

@@ -11,12 +11,11 @@ import com.altis.library_backend.users.specifications.UserSpecification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.ArrayList;
-import java.util.List;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class UserService {
@@ -27,7 +26,7 @@ public class UserService {
     public UserService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder
-    ){
+    ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
     }
@@ -35,32 +34,47 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserResponseDTO findById(Long id) {
 
-        UserEntity findUser = userRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + id));
+        UserEntity findUser = userRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "User not found with ID: " + id
+                        )
+                );
 
-            if (findUser.getEmail().equals("admin@admin.com")) {
-                throw new IllegalArgumentException("User not found with ID: " + id);
-            }
-
-            return new UserResponseDTO(
-                    findUser.getId(),
-                    findUser.getNameCompleted(),
-                    findUser.getEmail(),
-                    findUser.getPhone(),
-                    findUser.getCpf(),
-                    findUser.getDateBirth(),
-                    findUser.getAddress()
+        if (findUser.getIsAdmin() == true) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "User not found with ID: " + id
             );
+        }
+
+        return new UserResponseDTO(
+                findUser.getId(),
+                findUser.getNameCompleted(),
+                findUser.getEmail(),
+                findUser.getPhone(),
+                findUser.getCpf(),
+                findUser.getDateBirth(),
+                findUser.getAddress()
+        );
     }
 
     @Transactional(readOnly = true)
-    public Page<UserResponseDTO> findAll(String nameCompleted,String email, String cpf, Pageable pageable) {
+    public Page<UserResponseDTO> findAll(
+            String nameCompleted,
+            String email,
+            String cpf,
+            Pageable pageable
+    ) {
 
         Specification<UserEntity> spec = UserSpecification.isNotAdmin()
                 .and(UserSpecification.hasName(nameCompleted))
                 .and(UserSpecification.hasEmail(email))
                 .and(UserSpecification.hasCpf(cpf));
 
-        Page<UserEntity> users = userRepository.findAll(spec, pageable);
+        Page<UserEntity> users =
+                userRepository.findAll(spec, pageable);
 
         return users.map(user -> new UserResponseDTO(
                 user.getId(),
@@ -74,15 +88,32 @@ public class UserService {
     }
 
     @Transactional
-    public UpdateResponseDTO updateUser(Long id, UpdateRequestDTO request) {
+    public UpdateResponseDTO updateUser(
+            Long id,
+            UpdateRequestDTO request
+    ) {
 
-        UserEntity existingUser = userRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + id));
+        UserEntity existingUser = userRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "User not found with ID: " + id
+                        )
+                );
+
+        if (existingUser.getIsAdmin() == true) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Admin user cannot be edited."
+            );
+        }
 
         if (!passwordEncoder.matches(
                 request.currentPassword(),
                 existingUser.getPassword()
         )) {
-            throw new IllegalArgumentException(
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
                     "Invalid current password!"
             );
         }
@@ -92,32 +123,47 @@ public class UserService {
                 && !existingUser.getEmail().equals(request.email())
                 && userRepository.existsByEmail(request.email())) {
 
-            throw new IllegalArgumentException(
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
                     "Email already in use by another account"
             );
         }
 
-        if (request.nameCompleted() != null && !request.nameCompleted().isBlank()) {
-            existingUser.setNameCompleted(request.nameCompleted()
+        if (request.nameCompleted() != null
+                && !request.nameCompleted().isBlank()) {
+
+            existingUser.setNameCompleted(
+                    request.nameCompleted()
             );
         }
 
-        if (request.email() != null && !request.email().isBlank()) {
-            existingUser.setEmail(request.email()
+        if (request.email() != null
+                && !request.email().isBlank()) {
+
+            existingUser.setEmail(
+                    request.email()
             );
         }
 
-        if (request.address() != null && !request.address().isBlank()) {
-            existingUser.setAddress(request.address()
+        if (request.address() != null
+                && !request.address().isBlank()) {
+
+            existingUser.setAddress(
+                    request.address()
             );
         }
 
-        if (request.phone() != null && !request.phone().isBlank()) {
-            existingUser.setPhone(request.phone()
+        if (request.phone() != null
+                && !request.phone().isBlank()) {
+
+            existingUser.setPhone(
+                    request.phone()
             );
         }
 
-        if (request.password() != null && !request.password().isBlank()) {
+        if (request.password() != null
+                && !request.password().isBlank()) {
+
             existingUser.setPassword(
                     passwordEncoder.encode(
                             request.password()
@@ -138,51 +184,79 @@ public class UserService {
     }
 
     @Transactional
-    public UserResponseDTO adminUpdateUser(Long id, UserRequestDTO request) {
+    public UserResponseDTO adminUpdateUser(
+            Long id,
+            UserRequestDTO request
+    ) {
 
-        UserEntity existingUser = userRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + id));
+        UserEntity existingUser = userRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "User not found with ID: " + id
+                        )
+                );
 
         if (request.email() != null
                 && !request.email().isBlank()
                 && !existingUser.getEmail().equals(request.email())
                 && userRepository.existsByEmail(request.email())) {
 
-            throw new IllegalArgumentException(
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
                     "Email already in use by another account"
             );
         }
 
-        if (request.nameCompleted() != null && !request.nameCompleted().isBlank()) {
-            existingUser.setNameCompleted(request.nameCompleted()
+        if (request.nameCompleted() != null
+                && !request.nameCompleted().isBlank()) {
+
+            existingUser.setNameCompleted(
+                    request.nameCompleted()
             );
         }
 
-        if (request.email() != null && !request.email().isBlank()) {
-            existingUser.setEmail(request.email()
+        if (request.email() != null
+                && !request.email().isBlank()) {
+
+            existingUser.setEmail(
+                    request.email()
             );
         }
 
-        if (request.phone() != null && !request.phone().isBlank()) {
-            existingUser.setPhone(request.phone()
+        if (request.phone() != null
+                && !request.phone().isBlank()) {
+
+            existingUser.setPhone(
+                    request.phone()
             );
         }
 
-        if (request.address() != null && !request.address().isBlank()) {
-            existingUser.setAddress(request.address()
+        if (request.address() != null
+                && !request.address().isBlank()) {
+
+            existingUser.setAddress(
+                    request.address()
             );
         }
 
-        if (request.cpf() != null && !request.cpf().isBlank()) {
-            existingUser.setCpf(request.cpf()
+        if (request.cpf() != null
+                && !request.cpf().isBlank()) {
+
+            existingUser.setCpf(
+                    request.cpf()
             );
         }
 
         if (request.dateBirth() != null) {
-            existingUser.setDateBirth(request.dateBirth()
+
+            existingUser.setDateBirth(
+                    request.dateBirth()
             );
         }
 
-        UserEntity savedUser = userRepository.save(existingUser);
+        UserEntity savedUser =
+                userRepository.save(existingUser);
 
         return new UserResponseDTO(
                 savedUser.getId(),
@@ -196,23 +270,47 @@ public class UserService {
     }
 
     @Transactional
-    public void forgotPassword(ForgotPasswordRequestDTO request) {
+    public void forgotPassword(
+            ForgotPasswordRequestDTO request
+    ) {
 
-        UserEntity existingUser = userRepository.findByEmail(request.email()).orElseThrow(() -> new IllegalArgumentException("Invalid email or CPF"));
+        UserEntity existingUser = userRepository
+                .findByEmail(request.email())
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.BAD_REQUEST,
+                                "Invalid email or CPF"
+                        )
+                );
+
+        if (existingUser.getIsAdmin() == true) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Admin cannot reset password."
+            );
+        }
 
         if (!existingUser.getCpf().equals(request.cpf())) {
-            throw new IllegalArgumentException(
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
                     "Invalid email or CPF"
             );
         }
 
-        if (!request.newPassword().equals(request.confirmPassword())) {
-            throw new IllegalArgumentException(
+        if (!request.newPassword().equals(
+                request.confirmPassword()
+        )) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
                     "Passwords do not match"
             );
         }
 
-        existingUser.setPassword(passwordEncoder.encode(request.newPassword()));
+        existingUser.setPassword(
+                passwordEncoder.encode(
+                        request.newPassword()
+                )
+        );
 
         userRepository.save(existingUser);
     }
@@ -221,7 +319,10 @@ public class UserService {
     public void deleteUser(Long id) {
 
         if (!userRepository.existsById(id)) {
-            throw new IllegalArgumentException("User not found with ID: " + id);
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "User not found with ID: " + id
+            );
         }
 
         userRepository.deleteById(id);
